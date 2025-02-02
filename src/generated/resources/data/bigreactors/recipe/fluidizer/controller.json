@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": {
+      "item": "bigreactors:fluidizercasing"
+    },
+    "E": {
+      "tag": "c:gems/emerald"
+    },
+    "P": {
+      "tag": "c:dusts/glowstone"
+    },
+    "X": {
+      "item": "minecraft:comparator"
+    },
+    "Y": {
+      "tag": "c:ingots/yellorium"
+    }
+  },
+  "pattern": [
+    "CXC",
+    "YEY",
+    "CPC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:fluidizercontroller"
+  }
+}

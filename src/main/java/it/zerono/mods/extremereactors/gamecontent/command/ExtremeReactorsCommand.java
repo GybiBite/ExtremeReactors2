@@ -31,23 +31,33 @@ import it.zerono.mods.extremereactors.api.reactor.*;
 import it.zerono.mods.extremereactors.api.turbine.CoilMaterial;
 import it.zerono.mods.extremereactors.api.turbine.CoilMaterialRegistry;
 import it.zerono.mods.zerocore.lib.data.gfx.Colour;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.ResourceLocationArgument;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
+import it.zerono.mods.zerocore.lib.tag.TagsHelper;
+import it.zerono.mods.zerocore.lib.text.TextHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.blocks.BlockInput;
+import net.minecraft.commands.arguments.blocks.BlockStateArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class ExtremeReactorsCommand {
 
-    public static void register(final CommandDispatcher<CommandSource> dispatcher) {
+    public static void register(final CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext buildContext) {
 
         dispatcher.register(Commands.literal("er")
                 .requires(cs -> cs.hasPermission(2))
@@ -75,6 +85,27 @@ public final class ExtremeReactorsCommand {
                                                 (Reactant r, Float v) -> r.getFuelData().setFuelUnitsPerFissionEvent(v))))
                                 )
                         )
+                        .then(Commands.literal("list").executes(ctx ->
+                                displayNamesList(ctx, ExtremeReactorsCommand::getReactantsNames)))
+                )
+                .then(Commands.literal("moderators")
+                        .then(Commands.literal("get")
+                                .then(greedyNameParam().executes(ExtremeReactorsCommand::getModerator))
+                        )
+                        .then(Commands.literal("set")
+                                .then(blockParam(buildContext)
+                                        .then(floatCommand("absorption", 0.0f, 1.0f,
+                                                context -> setModeratorValue(context, Moderator::getAbsorption, Moderator::setAbsorption)))
+                                        .then(floatCommand("heatEfficiency", 0.0f, 1.0f,
+                                                context -> setModeratorValue(context, Moderator::getHeatEfficiency, Moderator::setHeatEfficiency)))
+                                        .then(floatCommand("moderation", 1.0f,
+                                                context -> setModeratorValue(context, Moderator::getModeration, Moderator::setModeration)))
+                                        .then(floatCommand("heatConductivity", 0.0f,
+                                                context -> setModeratorValue(context, Moderator::getHeatConductivity, Moderator::setHeatConductivity)))
+                                )
+                        )
+                        .then(Commands.literal("list").executes(ctx ->
+                                displayNamesList(ctx, ModeratorsRegistry::getModeratorsNames)))
                 )
                 .then(Commands.literal("reaction")
                         .then(Commands.literal("get")
@@ -86,6 +117,8 @@ public final class ExtremeReactorsCommand {
                                         .then(floatCommand("fissionRate", 0.0001f, context -> setReactionValue(context, "_fissionRate", getFloat(context))))
                                 )
                         )
+                        .then(Commands.literal("list").executes(ctx ->
+                                displayNamesList(ctx, ReactionsRegistry::getReactionsNames)))
                 )
                 .then(Commands.literal("coils")
                         .then(Commands.literal("get")
@@ -101,6 +134,8 @@ public final class ExtremeReactorsCommand {
                                                 CoilMaterial::getEnergyExtractionRate, CoilMaterial::setEnergyExtractionRate)))
                                 )
                         )
+                        .then(Commands.literal("list").executes(ctx ->
+                                displayNamesList(ctx, CoilMaterialRegistry::getCoilsNames)))
                 )
         );
     }
@@ -112,67 +147,79 @@ public final class ExtremeReactorsCommand {
 
     //region commands & parameters
 
-    private static ArgumentBuilder<CommandSource, LiteralArgumentBuilder<CommandSource>> stringCommand(final String propertyName,
-                                                                                                       final Command<CommandSource> cmd) {
+    private static ArgumentBuilder<CommandSourceStack, LiteralArgumentBuilder<CommandSourceStack>> stringCommand(final String propertyName,
+                                                                                                                 final Command<CommandSourceStack> cmd) {
         return Commands.literal(propertyName).then(Commands.argument(PARAM_VALUE, StringArgumentType.string()).executes(cmd));
     }
 
-    private static ArgumentBuilder<CommandSource, LiteralArgumentBuilder<CommandSource>> floatCommand(final String propertyName,
-                                                                                                      final float min,
-                                                                                                      final Command<CommandSource> cmd) {
+    private static ArgumentBuilder<CommandSourceStack, LiteralArgumentBuilder<CommandSourceStack>> floatCommand(final String propertyName,
+                                                                                                                final float min,
+                                                                                                                final Command<CommandSourceStack> cmd) {
         return Commands.literal(propertyName).then(Commands.argument(PARAM_VALUE, FloatArgumentType.floatArg(min)).executes(cmd));
     }
 
-    private static ArgumentBuilder<CommandSource, LiteralArgumentBuilder<CommandSource>> floatCommand(final String propertyName,
-                                                                                                      final float min, final float max,
-                                                                                                      final Command<CommandSource> cmd) {
+    private static ArgumentBuilder<CommandSourceStack, LiteralArgumentBuilder<CommandSourceStack>> floatCommand(final String propertyName,
+                                                                                                                final float min, final float max,
+                                                                                                                final Command<CommandSourceStack> cmd) {
         return Commands.literal(propertyName).then(Commands.argument(PARAM_VALUE, FloatArgumentType.floatArg(min, max)).executes(cmd));
     }
 
-    private static RequiredArgumentBuilder<CommandSource, String> nameParam() {
+    private static RequiredArgumentBuilder<CommandSourceStack, String> nameParam() {
         return Commands.argument(PARAM_NAME, StringArgumentType.string());
     }
 
-    private static RequiredArgumentBuilder<CommandSource, ResourceLocation> tagIdParam() {
+    private static RequiredArgumentBuilder<CommandSourceStack, String> greedyNameParam() {
+        return Commands.argument(PARAM_NAME, StringArgumentType.greedyString());
+    }
+
+    private static RequiredArgumentBuilder<CommandSourceStack, BlockInput> blockParam(CommandBuildContext context) {
+        return Commands.argument(PARAM_BLOCK, BlockStateArgument.block(context));
+    }
+
+    private static RequiredArgumentBuilder<CommandSourceStack, ResourceLocation> tagIdParam() {
         return Commands.argument(PARAM_TAG, ResourceLocationArgument.id());
     }
 
-    private static String getName(final CommandContext<CommandSource> context) {
+    private static String getName(final CommandContext<CommandSourceStack> context) {
         return StringArgumentType.getString(context, PARAM_NAME);
     }
 
-    private static ResourceLocation getTagId(final CommandContext<CommandSource> context) {
+    private static BlockInput getBlock(final CommandContext<CommandSourceStack> context) {
+        return BlockStateArgument.getBlock(context, PARAM_BLOCK);
+    }
+
+    private static ResourceLocation getTagId(final CommandContext<CommandSourceStack> context) {
         return ResourceLocationArgument.getId(context, PARAM_TAG);
     }
 
-    private static String getString(final CommandContext<CommandSource> context) {
+    private static String getString(final CommandContext<CommandSourceStack> context) {
         return StringArgumentType.getString(context, PARAM_VALUE);
     }
 
-    private static float getFloat(final CommandContext<CommandSource> context) {
+    private static float getFloat(final CommandContext<CommandSourceStack> context) {
         return FloatArgumentType.getFloat(context, PARAM_VALUE);
     }
 
     //endregion
     //region reactants
 
-    private static int getReactant(final CommandContext<CommandSource> context) {
+    private static int getReactant(final CommandContext<CommandSourceStack> context) {
 
-        context.getSource().sendSuccess(ReactantsRegistry.get(getName(context))
+        context.getSource().sendSuccess(() -> ReactantsRegistry.get(getName(context))
                 .map(ExtremeReactorsCommand::getTextFrom)
-                .orElse(new StringTextComponent("Reactant not found")), true);
+                .orElse(Component.literal("Reactant not found")), true);
         return 0;
     }
 
-    private static int setReactantColour(final CommandContext<CommandSource> context) {
+    private static int setReactantColour(final CommandContext<CommandSourceStack> context) {
 
-        context.getSource().sendSuccess(ReactantsRegistry.get(getName(context))
+        context.getSource().sendSuccess(() -> ReactantsRegistry.get(getName(context))
                 .map(r -> setReactantColour(r, (int)Long.parseLong(getString(context), 16)))
-                .orElse(new StringTextComponent("Reactant not found")), true);
+                .orElse(Component.literal("Reactant not found")), true);
         return 0;
     }
 
-    private static ITextComponent setReactantColour(final Reactant reactant, final int colour) {
+    private static Component setReactantColour(final Reactant reactant, final int colour) {
 
         try {
 
@@ -180,42 +227,42 @@ public final class ExtremeReactorsCommand {
 
             f.setAccessible(true);
             f.set(reactant, Colour.fromRGBA(colour));
-            return new StringTextComponent(String.format("Reactant %s colour set to 0x%08X", reactant.getName(), colour));
+            return Component.literal(String.format("Reactant %s colour set to 0x%08X", reactant.getName(), colour));
 
         } catch (Exception ex) {
 
             Log.LOGGER.error(ex);
-            return new StringTextComponent("Exception raised while setting colour field");
+            return Component.literal("Exception raised while setting colour field");
         }
     }
 
-    private static int setReactantFuelValue(final CommandContext<CommandSource> context, final Function<Reactant, Float> getter,
+    private static int setReactantFuelValue(final CommandContext<CommandSourceStack> context, final Function<Reactant, Float> getter,
                                             final BiConsumer<Reactant, Float> setter) {
 
-        context.getSource().sendSuccess(ReactantsRegistry.get(getName(context))
+        context.getSource().sendSuccess(() -> ReactantsRegistry.get(getName(context))
                 .filter(r -> r.test(ReactantType.Fuel))
                 .map(r -> setValue(r, getFloat(context), getter, setter))
-                .orElse(new StringTextComponent("Fuel Reactant not found")), true);
+                .orElse(Component.literal("Fuel Reactant not found")), true);
         return 0;
     }
 
-    private static ITextComponent getTextFrom(final Reactant reactant) {
+    private static Component getTextFrom(final Reactant reactant) {
 
-        final IFormattableTextComponent text = new StringTextComponent(String.format("[" +
-                        TextFormatting.BOLD + "%s" + TextFormatting.RESET + "] " + TextFormatting.GOLD + "%s; " + TextFormatting.RESET +
-                        TextFormatting.ITALIC + "color: " + TextFormatting.RESET + "%08X",
+        final MutableComponent text = Component.literal(String.format("[" +
+                        ChatFormatting.BOLD + "%s" + ChatFormatting.RESET + "] " + ChatFormatting.GOLD + "%s; " + ChatFormatting.RESET +
+                        ChatFormatting.ITALIC + "color: " + ChatFormatting.RESET + "%08X",
                 reactant.getType(), reactant.getName(), reactant.getColour().toRGBA()));
 
         if (reactant.test(ReactantType.Fuel)) {
 
             final FuelProperties properties = reactant.getFuelData();
 
-            text.append(new StringTextComponent(String.format("; " +
-                            TextFormatting.ITALIC + "moderation: " + TextFormatting.RESET + "%f; " +
-                            TextFormatting.ITALIC + "absorption: " + TextFormatting.RESET + "%f; " +
-                            TextFormatting.ITALIC + "hardness: " + TextFormatting.RESET + "%f; " +
-                            TextFormatting.ITALIC + "fissionEventsPerFuelUnit: " + TextFormatting.RESET + "%f; " +
-                            TextFormatting.ITALIC + "fuelUnitsPerFissionEvent: " + TextFormatting.RESET + "%f",
+            text.append(Component.literal(String.format("; " +
+                            ChatFormatting.ITALIC + "moderation: " + ChatFormatting.RESET + "%f; " +
+                            ChatFormatting.ITALIC + "absorption: " + ChatFormatting.RESET + "%f; " +
+                            ChatFormatting.ITALIC + "hardness: " + ChatFormatting.RESET + "%f; " +
+                            ChatFormatting.ITALIC + "fissionEventsPerFuelUnit: " + ChatFormatting.RESET + "%f; " +
+                            ChatFormatting.ITALIC + "fuelUnitsPerFissionEvent: " + ChatFormatting.RESET + "%f",
                     properties.getModerationFactor(), properties.getAbsorptionCoefficient(), properties.getHardnessDivisor(),
                     properties.getFissionEventsPerFuelUnit(), properties.getFuelUnitsPerFissionEvent())));
         }
@@ -223,30 +270,76 @@ public final class ExtremeReactorsCommand {
         return text;
     }
 
+    private static List<String> getReactantsNames() {
+        return ReactantsRegistry.getReactants().stream()
+                .map(Reactant::getName)
+                .sorted(String::compareTo)
+                .toList();
+    }
+
     //endregion
-    //region reactions
+    //region moderators
 
-    private static int getReaction(final CommandContext<CommandSource> context) {
+    private static int getModerator(final CommandContext<CommandSourceStack> context) {
 
-        context.getSource().sendSuccess(ReactantsRegistry.get(getName(context))
-                .flatMap(ReactionsRegistry::get)
-                .map(ExtremeReactorsCommand::getTextFrom)
-                .orElse(new StringTextComponent("Reactant or reaction not found")), true);
+        final var name = getName(context);
+
+        context.getSource().sendSuccess(() -> ModeratorsRegistry.getFromName(name)
+                .map(moderator -> getTextFrom(name, moderator))
+                .orElse(Component.literal("Moderator not found")), true);
         return 0;
     }
 
-    private static ITextComponent getTextFrom(final Reaction reaction) {
-        return new StringTextComponent(String.format("[" +
-                        TextFormatting.BOLD + "%s" + TextFormatting.RESET + " -> " +
-                        TextFormatting.BOLD + "%s" + TextFormatting.RESET + "] " +
-                        TextFormatting.ITALIC + "reactivity: " + TextFormatting.RESET + "%f; " +
-                        TextFormatting.ITALIC + "fissionRate: " + TextFormatting.RESET + "%f",
+    private static int setModeratorValue(CommandContext<CommandSourceStack> context, final Function<Moderator, Float> getter,
+                                         BiConsumer<Moderator, Float> setter) {
+
+        final BlockState state = getBlock(context).getState();
+
+        context.getSource().sendSuccess(() -> ModeratorsRegistry.getFrom(state)
+                .map(r -> setValue(r, getFloat(context), getter, setter))
+                .orElse(Component.literal("Moderator not found")), true);
+
+        return 0;
+    }
+
+    private static Component getTextFrom(String name, Moderator moderator) {
+        return Component.literal("[")
+                .append(Component.empty().withStyle(ChatFormatting.BOLD).append(name))
+                .append("] ")
+                .append(Component.literal("absorption: ").withStyle(ChatFormatting.ITALIC))
+                .append(String.format("%f; ", moderator.getAbsorption()))
+                .append(Component.literal("heatEfficiency: ").withStyle(ChatFormatting.ITALIC))
+                .append(String.format("%f; ", moderator.getHeatEfficiency()))
+                .append(Component.literal("moderation: ").withStyle(ChatFormatting.ITALIC))
+                .append(String.format("%f; ", moderator.getModeration()))
+                .append(Component.literal("heatConductivity: ").withStyle(ChatFormatting.ITALIC))
+                .append(String.format("%f; ", moderator.getHeatConductivity()));
+    }
+
+    //endregion
+    //region reactions
+
+    private static int getReaction(final CommandContext<CommandSourceStack> context) {
+
+        context.getSource().sendSuccess(() -> ReactantsRegistry.get(getName(context))
+                .flatMap(ReactionsRegistry::get)
+                .map(ExtremeReactorsCommand::getTextFrom)
+                .orElse(Component.literal("Reactant or reaction not found")), true);
+        return 0;
+    }
+
+    private static Component getTextFrom(final Reaction reaction) {
+        return Component.literal(String.format("[" +
+                        ChatFormatting.BOLD + "%s" + ChatFormatting.RESET + " -> " +
+                        ChatFormatting.BOLD + "%s" + ChatFormatting.RESET + "] " +
+                        ChatFormatting.ITALIC + "reactivity: " + ChatFormatting.RESET + "%f; " +
+                        ChatFormatting.ITALIC + "fissionRate: " + ChatFormatting.RESET + "%f",
                 reaction.getSource(), reaction.getProduct(), reaction.getReactivity(), reaction.getFissionRate()));
     }
 
-    private static int setReactionValue(final CommandContext<CommandSource> context, final String fieldName, final float value) {
+    private static int setReactionValue(final CommandContext<CommandSourceStack> context, final String fieldName, final float value) {
 
-        context.getSource().sendSuccess(ReactantsRegistry.get(getName(context))
+        context.getSource().sendSuccess(() -> ReactantsRegistry.get(getName(context))
                 .flatMap(ReactionsRegistry::get)
                 .map(reaction -> {
                     try {
@@ -255,61 +348,97 @@ public final class ExtremeReactorsCommand {
 
                         f.setAccessible(true);
                         f.set(reaction, value);
-                        return new StringTextComponent(String.format("Reaction %s parameter %s set to %f", reaction.getSource(), fieldName, value));
+                        return Component.literal(String.format("Reaction %s parameter %s set to %f", reaction.getSource(), fieldName, value));
 
                     } catch (Exception ex) {
 
                         Log.LOGGER.error(ex);
-                        return new StringTextComponent(String.format("Exception raised while setting Reaction field %s", fieldName));
+                        return Component.literal(String.format("Exception raised while setting Reaction field %s", fieldName));
                     }
                 })
-                .orElse(new StringTextComponent("Reactant or reaction not found")), true);
+                .orElse(Component.literal("Reactant or reaction not found")), true);
         return 0;
     }
 
     //endregion
     //region coils
 
-    private static int getCoil(final CommandContext<CommandSource> context) {
+    private static int getCoil(final CommandContext<CommandSourceStack> context) {
 
-        context.getSource().sendSuccess(getCoilByName(context)
+        context.getSource().sendSuccess(() -> getCoilByName(context)
                 .map(ExtremeReactorsCommand::getTextFrom)
-                .orElse(new StringTextComponent("Coil not found")), true);
+                .orElse(Component.literal("Coil not found")), true);
         return 0;
     }
 
-    private static int setCoilValue(final CommandContext<CommandSource> context, final Function<CoilMaterial, Float> getter,
+    private static int setCoilValue(final CommandContext<CommandSourceStack> context, final Function<CoilMaterial, Float> getter,
                                     final BiConsumer<CoilMaterial, Float> setter) {
 
-        context.getSource().sendSuccess(getCoilByName(context)
+        context.getSource().sendSuccess(() -> getCoilByName(context)
                 .map(c -> setValue(c, getFloat(context), getter, setter))
-                .orElse(new StringTextComponent("Coil not found")), true);
+                .orElse(Component.literal("Coil not found")), true);
         return 0;
     }
 
-    private static ITextComponent getTextFrom(final CoilMaterial coil) {
-        return new StringTextComponent(String.format(
-                TextFormatting.ITALIC + "efficiency: " + TextFormatting.RESET + "%f; " +
-                        TextFormatting.ITALIC + "bonus: " + TextFormatting.RESET + "%f; " +
-                        TextFormatting.ITALIC + "energyExtractionRate: " + TextFormatting.RESET + "%f",
+    private static Component getTextFrom(final CoilMaterial coil) {
+        return Component.literal(String.format(
+                ChatFormatting.ITALIC + "efficiency: " + ChatFormatting.RESET + "%f; " +
+                        ChatFormatting.ITALIC + "bonus: " + ChatFormatting.RESET + "%f; " +
+                        ChatFormatting.ITALIC + "energyExtractionRate: " + ChatFormatting.RESET + "%f",
                 coil.getEfficiency(), coil.getBonus(), coil.getEnergyExtractionRate()));
     }
 
-    private static Optional<CoilMaterial> getCoilByName(final CommandContext<CommandSource> context) {
-        return CoilMaterialRegistry.get(getTagId(context));
+    private static Optional<CoilMaterial> getCoilByName(final CommandContext<CommandSourceStack> context) {
+        return CoilMaterialRegistry.get(TagsHelper.BLOCKS.createKey(getTagId(context)));
     }
 
     //endregion
 
-    private static <T> ITextComponent setValue(final T coil, final float value, final Function<T, Float> getter,
-                                               final BiConsumer<T, Float> setter) {
+    private static <T> Component setValue(final T data, final float value, final Function<T, Float> getter,
+                                          final BiConsumer<T, Float> setter) {
 
-        setter.accept(coil, value);
-        return new StringTextComponent(String.format("Value set to %f", getter.apply(coil)));
+        setter.accept(data, value);
+        return Component.literal(String.format("Value set to %f", getter.apply(data)));
+    }
+
+    private static int displayNamesList(CommandContext<CommandSourceStack> context,
+                                        Supplier<@NotNull List<String>> listFactory) {
+
+        final var source = context.getSource();
+
+        source.sendSuccess(() -> TextHelper.literal("--BEGIN--:"), true);
+        buildNamesList(listFactory).forEach(chunk -> source.sendSuccess(() -> chunk, true));
+        source.sendSuccess(() -> TextHelper.literal("--END--:"), true);
+        return 0;
+    }
+
+    private static List<@NotNull Component> buildNamesList(Supplier<@NotNull List<String>> listFactory) {
+
+        final List<@NotNull Component> output = new LinkedList<>();
+        final var separator = TextHelper.literal(" ");
+        final var source = listFactory.get();
+        MutableComponent chunk = null;
+
+        for (int idx = 0; idx < source.size(); ++idx) {
+
+            final var name = source.get(idx);
+
+            if (null == chunk || 0 == idx % 10) {
+
+                chunk = Component.empty();
+                output.add(chunk);
+            }
+
+            chunk.append(ComponentUtils.copyOnClickText(name));
+            chunk.append(separator);
+        }
+
+        return output;
     }
 
     private static final String PARAM_NAME = "name";
     private static final String PARAM_TAG = "tag";
+    private static final String PARAM_BLOCK = "block";
     private static final String PARAM_VALUE = "value";
 
     //endregion

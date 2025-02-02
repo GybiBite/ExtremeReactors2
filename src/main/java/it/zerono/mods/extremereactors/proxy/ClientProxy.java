@@ -18,26 +18,36 @@
 
 package it.zerono.mods.extremereactors.proxy;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
-import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.api.reactor.ModeratorsRegistry;
 import it.zerono.mods.extremereactors.api.reactor.ReactantMappingsRegistry;
 import it.zerono.mods.extremereactors.api.turbine.CoilMaterialRegistry;
 import it.zerono.mods.extremereactors.config.Config;
+import it.zerono.mods.extremereactors.gamecontent.CommonConstants;
 import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.compat.patchouli.PatchouliCompat;
+import it.zerono.mods.extremereactors.gamecontent.fluid.ReactorFluidRenderProperties;
+import it.zerono.mods.extremereactors.gamecontent.fluid.ReactorFluidType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.CachedSprites;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.ChargingPortScreen;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.FluidPortScreen;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.container.ChargingPortContainer;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.GuiTheme;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.client.model.EnergizerModelBuilder;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.client.screen.EnergizerChargingPortScreen;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.client.screen.EnergizerControllerScreen;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.client.screen.EnergizerPowerPortScreen;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.FluidizerTankData;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.model.FluidizerClientTankData;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.model.FluidizerGlassModelBuilder;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.model.FluidizerIOModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.model.FluidizerModelBuilder;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.render.FluidizerControllerEntityRenderer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.screen.FluidizerControllerScreen;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.screen.FluidizerSolidInjectorScreen;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part.FluidizerControllerEntity;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.FuelRodsLayout;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.ClientFuelRodsLayout;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model.ReactorFuelRodBlockColor;
@@ -45,9 +55,6 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.mode
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model.ReactorGlassModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model.ReactorModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.screen.*;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part.ReactorChargingPortEntity;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part.ReactorFluidPortEntity;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.ReactorVariant;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.client.model.ReprocessorGlassModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.client.model.ReprocessorIOModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.client.model.ReprocessorModelBuilder;
@@ -58,129 +65,71 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.mode
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.model.TurbineModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.model.TurbineRotorModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.render.rotor.RotorBearingEntityRenderer;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.screen.TurbineChargingPortScreen;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.screen.TurbineControllerScreen;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.screen.TurbineFluidPortScreen;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.screen.TurbineRedstonePortScreen;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineChargingPortEntity;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineFluidPortEntity;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.variant.TurbineVariant;
-import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.client.model.ICustomModelBuilder;
 import it.zerono.mods.zerocore.lib.client.model.ModBakedModelSupplier;
-import it.zerono.mods.zerocore.lib.compat.Mods;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
-import net.minecraft.block.Block;
-import net.minecraft.client.gui.IHasContainer;
-import net.minecraft.client.gui.ScreenManager;
-import net.minecraft.client.gui.screen.Screen;
+import it.zerono.mods.zerocore.lib.fluid.SimpleFluidTypeRenderProperties;
+import it.zerono.mods.zerocore.lib.item.TintedBucketItem;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.inventory.container.PlayerContainer;
-import net.minecraft.item.Item;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraftforge.client.event.ColorHandlerEvent;
-import net.minecraftforge.client.event.ModelBakeEvent;
-import net.minecraftforge.client.event.ModelRegistryEvent;
-import net.minecraftforge.client.event.TextureStitchEvent;
-import net.minecraftforge.event.TagsUpdatedEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.resource.IResourceType;
-import net.minecraftforge.resource.ISelectiveResourceReloadListener;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ClientProxy
-        implements IProxy, ISelectiveResourceReloadListener {
+        implements IForgeProxy, ResourceManagerReloadListener {
 
-    public ClientProxy() {
-
-        this._modelBuilders = initModels();
-
-        IEventBus bus;
-
-        bus = Mod.EventBusSubscriber.Bus.MOD.bus().get();
-        bus.register(this);
-
-        bus = Mod.EventBusSubscriber.Bus.FORGE.bus().get();
-        bus.addListener(this::onItemTooltip);
-        bus.addListener(EventPriority.LOWEST, this::onVanillaTagsUpdated);
-        bus.addListener(this::onTextureStitchPre);
-
-        CodeHelper.addResourceReloadListener(this);
-    }
-
-    public static Supplier<IBakedModel> getModelSupplier(final ResourceLocation modelId) {
+    public static Supplier<BakedModel> getModelSupplier(final ModelResourceLocation modelId) {
         return s_bakedModelSupplier.getOrCreate(modelId);
     }
 
-    /**
-     * Called on the physical client to perform client-specific initialization tasks
-     *
-     * @param event the event
-     */
-    @SubscribeEvent
-    public void onClientInit(final FMLClientSetupEvent event) {
+    //region IForgeProxy
 
-        CachedSprites.initialize();
+    @Override
+    public void initialize(IEventBus modEventBus) {
 
-        event.enqueueWork(() -> {
+        s_bakedModelSupplier = new ModBakedModelSupplier(modEventBus);
 
-            registerRenderTypes();
-            registerTileRenderers();
-            registerScreens();
-            
-            // Patchouli multiblock rendering do not support IModelData-based models
-            Mods.PATCHOULI.ifPresent(PatchouliCompat::initialize);
-        });
-    }
+        this._modelBuilders = Suppliers.memoize(ClientProxy::initModels);
 
-    @SubscribeEvent
-    public void onRegisterModels(final ModelRegistryEvent event) {
-        this._modelBuilders.forEach(ICustomModelBuilder::onRegisterModels);
-    }
+        modEventBus.addListener(ClientProxy::onClientInit);
+        modEventBus.addListener(this::onRegisterModels);
+        modEventBus.addListener(this::onModelBake);
+        modEventBus.addListener(ClientProxy::onRegisterBlockColorHandlers);
+        modEventBus.addListener(ClientProxy::onRegisterItemColorHandlers);
+        modEventBus.addListener(ClientProxy::onRegisterMenuScreensEvent);
+        modEventBus.addListener(ClientProxy::onRegisterClientExtensionsEvent);
 
-    @SubscribeEvent
-    public void onModelBake(final ModelBakeEvent event) {
-        this._modelBuilders.forEach(builder -> builder.onBakeModels(event));
-    }
-
-    @SubscribeEvent
-    public void onTextureStitchPre(final TextureStitchEvent.Pre event) {
-
-        if (!event.getMap().location().equals(PlayerContainer.BLOCK_ATLAS)) {
-            return;
-        }
-
-        event.addSprite(CachedSprites.GUI_CHARGINGPORT_SLOT_ID);
-    }
-
-    public void onItemTooltip(final ItemTooltipEvent event) {
-
-        if (!Config.CLIENT.disableApiTooltips.get() && event.getFlags().isAdvanced()) {
-            event.getToolTip().addAll(this.getApiTooltipCache().getOrDefault(event.getItemStack().getItem(), Collections.emptySet()));
-        }
-    }
-
-    @SubscribeEvent
-    public void onColorHandlerEvent(final ColorHandlerEvent.Block event) {
-        event.getBlockColors().register(new ReactorFuelRodBlockColor(),
-                Content.Blocks.REACTOR_FUELROD_BASIC.get(),
-                Content.Blocks.REACTOR_FUELROD_REINFORCED.get());
+        NeoForge.EVENT_BUS.addListener(this::onAddReloadListener);
+        NeoForge.EVENT_BUS.addListener(this::onItemTooltip);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::onVanillaTagsUpdated);
     }
 
     //region IProxy
@@ -190,20 +139,16 @@ public class ClientProxy
         return new ClientFuelRodsLayout(direction, length);
     }
 
-    //endregion
-    //region ISelectiveResourceReloadListener
-
-    /**
-     * A version of onResourceManager that selectively chooses {@link IResourceType}s
-     * to reload.
-     * When using this, the given predicate should be called to ensure the relevant resources should
-     * be reloaded at this time.
-     *
-     * @param resourceManager   the resource manager being reloaded
-     * @param resourcePredicate predicate to test whether any given resource type should be reloaded
-     */
     @Override
-    public void onResourceManagerReload(IResourceManager resourceManager, Predicate<IResourceType> resourcePredicate) {
+    public FluidizerTankData createFluidizerTankData(FluidizerControllerEntity controllerEntity) {
+        return new FluidizerClientTankData(controllerEntity);
+    }
+
+    //endregion
+    //region ResourceManagerReloadListener
+
+    @Override
+    public void onResourceManagerReload(ResourceManager resourceManager) {
         this.invalidateApiTooltipCache();
     }
 
@@ -211,60 +156,30 @@ public class ClientProxy
     //region internals
 
     private static List<ICustomModelBuilder> initModels() {
-
-        //noinspection UnstableApiUsage
         return Streams.concat(
-                Arrays.stream(ReactorVariant.values())
-                        .flatMap(v -> Stream.of(
-                                new ReactorModelBuilder(v),
-                                new ReactorGlassModelBuilder(v),
-                                new ReactorFuelRodModelBuilder(v)
-                        )),
-                Arrays.stream(TurbineVariant.values())
-                        .flatMap(v -> Stream.of(
-                                new TurbineModelBuilder(v),
-                                new TurbineGlassModelBuilder(v),
-                                new TurbineRotorModelBuilder(v)
-                        )),
+                Stream.of(new ReactorModelBuilder.Basic(),
+                        new ReactorGlassModelBuilder.Basic(),
+                        ReactorFuelRodModelBuilder.basic(),
+                        new ReactorModelBuilder.Reinforced(),
+                        new ReactorGlassModelBuilder.Reinforced(),
+                        ReactorFuelRodModelBuilder.reinforced()
+                ),
+                Stream.of(new TurbineModelBuilder.Basic(),
+                        new TurbineGlassModelBuilder.Basic(),
+                        new TurbineRotorModelBuilder.Basic(),
+                        new TurbineModelBuilder.Reinforced(),
+                        new TurbineGlassModelBuilder.Reinforced(),
+                        new TurbineRotorModelBuilder.Reinforced()
+                ),
                 Stream.of(new ReprocessorModelBuilder(),
                         new ReprocessorIOModelBuilder(),
                         new ReprocessorGlassModelBuilder(),
                         new FluidizerModelBuilder(),
-                        new FluidizerGlassModelBuilder())
+                        new FluidizerIOModelBuilder(),
+                        new FluidizerGlassModelBuilder(),
+                        new EnergizerModelBuilder()
+                )
         ).collect(ImmutableList.toImmutableList());
-    }
-
-    private static void registerScreens() {
-
-        // Reactor GUIs
-        registerScreen(Content.ContainerTypes.REACTOR_CONTROLLER, ReactorControllerScreen::new);
-        registerScreen(Content.ContainerTypes.REACTOR_SOLID_ACCESSPORT, ReactorSolidAccessPortScreen::new);
-        registerScreen(Content.ContainerTypes.REACTOR_FLUID_ACCESSPORT, ReactorFluidAccessPortScreen::new);
-        registerScreen(Content.ContainerTypes.REACTOR_REDSTONEPORT, ReactorRedstonePortScreen::new);
-        registerScreen(Content.ContainerTypes.REACTOR_CONTROLROD, ReactorControlRodScreen::new);
-        registerScreen(Content.ContainerTypes.REACTOR_CHARGINGPORT,
-                (ChargingPortContainer<ReactorChargingPortEntity> container, PlayerInventory inventory, ITextComponent title) ->
-                        new ChargingPortScreen<>(container, inventory, title, ExtremeReactors.newID("reactor/part-forgechargingport")));
-        registerScreen(Content.ContainerTypes.REACTOR_FLUIDPORT,
-                (ModTileContainer<ReactorFluidPortEntity> container, PlayerInventory inventory, ITextComponent title) ->
-                        new FluidPortScreen<>(container, inventory, title, ExtremeReactors.newID("reactor/part-forgefluidport")));
-        // Turbine GUIs
-        registerScreen(Content.ContainerTypes.TURBINE_CONTROLLER, TurbineControllerScreen::new);
-        registerScreen(Content.ContainerTypes.TURBINE_CHARGINGPORT,
-                (ChargingPortContainer<TurbineChargingPortEntity> container, PlayerInventory inventory, ITextComponent title) ->
-                        new ChargingPortScreen<>(container, inventory, title, ExtremeReactors.newID("turbine/part-forgechargingport")));
-        registerScreen(Content.ContainerTypes.TURBINE_FLUIDPORT,
-                (ModTileContainer<TurbineFluidPortEntity> container, PlayerInventory inventory, ITextComponent title) ->
-                        new FluidPortScreen<>(container, inventory, title, ExtremeReactors.newID("turbine/part-forgefluidport")));
-        registerScreen(Content.ContainerTypes.TURBINE_REDSTONEPORT, TurbineRedstonePortScreen::new);
-
-        // Reprocessor GUIs
-        registerScreen(Content.ContainerTypes.REPROCESSOR_CONTROLLER, ReprocessorControllerScreen::new);
-        registerScreen(Content.ContainerTypes.REPROCESSOR_ACCESSPORT, ReprocessorAccessPortScreen::new);
-
-        // Fluidizer GUIS
-        registerScreen(Content.ContainerTypes.FLUIDIZER_SOLID_INJECTOR, FluidizerSolidInjectorScreen::new);
-        registerScreen(Content.ContainerTypes.FLUIDIZER_CONTROLLER, FluidizerControllerScreen::new);
     }
 
     private static void registerRenderTypes() {
@@ -281,34 +196,30 @@ public class ClientProxy
 
     private static void registerTileRenderers() {
 
-        ClientRegistry.bindTileEntityRenderer(Content.TileEntityTypes.TURBINE_ROTORBEARING.get(), RotorBearingEntityRenderer::new);
-        ClientRegistry.bindTileEntityRenderer(Content.TileEntityTypes.REPROCESSOR_COLLECTOR.get(), ReprocessorCollectorRender::new);
+        BlockEntityRenderers.register(Content.TileEntityTypes.TURBINE_ROTORBEARING.get(), RotorBearingEntityRenderer::new);
+        BlockEntityRenderers.register(Content.TileEntityTypes.REPROCESSOR_COLLECTOR.get(), ReprocessorCollectorRender::new);
+        BlockEntityRenderers.register(Content.TileEntityTypes.FLUIDIZER_CONTROLLER.get(), FluidizerControllerEntityRenderer::new);
     }
 
     //region registration helpers
 
-    private static <M extends Container, U extends Screen & IHasContainer<M>>
-        void registerScreen(final Supplier<? extends ContainerType<? extends M>> type,
-                        final ScreenManager.IScreenFactory<M, U> factory) {
-        ScreenManager.register(type.get(), factory);
-    }
-
     @SafeVarargs
     private static void registerRenderType(RenderType type, Supplier<? extends Block>... blocks) {
 
+        // TODO check json models
         for (final Supplier<? extends Block> block : blocks) {
-            RenderTypeLookup.setRenderLayer(block.get(), type);
+            ItemBlockRenderTypes.setRenderLayer(block.get(), type);
         }
     }
 
     //endregion
     //region api tooltip cache
 
-    private void onVanillaTagsUpdated(final TagsUpdatedEvent.VanillaTagTypes event) {
+    private void onVanillaTagsUpdated(final TagsUpdatedEvent event) {
         this.invalidateApiTooltipCache();
     }
 
-    private Map<Item, Set<ITextComponent>> getApiTooltipCache() {
+    private Map<Item, Set<Component>> getApiTooltipCache() {
 
         if (null == this._apiTooltipCache) {
             this._apiTooltipCache = buildApiTooltipCache();
@@ -321,26 +232,122 @@ public class ClientProxy
         this._apiTooltipCache = null;
     }
 
-    private static Map<Item, Set<ITextComponent>> buildApiTooltipCache() {
+    private static Map<Item, Set<Component>> buildApiTooltipCache() {
 
-        final Map<Item, Set<ITextComponent>> wipCache = Maps.newHashMap();
+        final Map<Item, Set<Component>> wipCache = Maps.newHashMap();
 
         // fill items from the API
 
         ReactantMappingsRegistry.fillReactantsTooltips(wipCache, Sets::newHashSet);
         ModeratorsRegistry.fillModeratorsTooltips(wipCache, Sets::newHashSet);
-        CoilMaterialRegistry.fillModeratorsTooltips(wipCache, Sets::newHashSet);
+        CoilMaterialRegistry.fillCoilsTooltips(wipCache, Sets::newHashSet);
 
         return new Object2ObjectArrayMap<>(wipCache);
     }
 
     //endregion
 
-    private static final ModBakedModelSupplier s_bakedModelSupplier = new ModBakedModelSupplier();
+    private static void onClientInit(FMLClientSetupEvent event) {
 
-    private final List<ICustomModelBuilder> _modelBuilders;
+        CachedSprites.initialize();
 
-    private Map<Item, Set<ITextComponent>> _apiTooltipCache;
+        event.enqueueWork(() -> {
+
+            registerRenderTypes();
+            registerTileRenderers();
+
+            // Patchouli multiblock rendering do not support ModelData-based models
+            PatchouliCompat.initialize();
+        });
+    }
+
+    private static void onRegisterMenuScreensEvent(RegisterMenuScreensEvent event) {
+
+        // Reactor GUIs
+        event.register(Content.ContainerTypes.REACTOR_CONTROLLER.get(), ReactorControllerScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_SOLID_ACCESSPORT.get(), ReactorSolidAccessPortScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_FLUID_ACCESSPORT.get(), ReactorFluidAccessPortScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_REDSTONEPORT.get(), ReactorRedstonePortScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_CONTROLROD.get(), ReactorControlRodScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_CHARGINGPORT.get(), ReactorChargingPortScreen::new);
+        event.register(Content.ContainerTypes.REACTOR_FLUIDPORT.get(), ReactorFluidPortScreen::new);
+
+        // Turbine GUIs
+        event.register(Content.ContainerTypes.TURBINE_CONTROLLER.get(), TurbineControllerScreen::new);
+        event.register(Content.ContainerTypes.TURBINE_CHARGINGPORT.get(), TurbineChargingPortScreen::new);
+        event.register(Content.ContainerTypes.TURBINE_FLUIDPORT.get(), TurbineFluidPortScreen::new);
+        event.register(Content.ContainerTypes.TURBINE_REDSTONEPORT.get(), TurbineRedstonePortScreen::new);
+
+        // Reprocessor GUIs
+        event.register(Content.ContainerTypes.REPROCESSOR_CONTROLLER.get(), ReprocessorControllerScreen::new);
+        event.register(Content.ContainerTypes.REPROCESSOR_ACCESSPORT.get(), ReprocessorAccessPortScreen::new);
+
+        // Fluidizer GUIS
+        event.register(Content.ContainerTypes.FLUIDIZER_SOLID_INJECTOR.get(), FluidizerSolidInjectorScreen::new);
+        event.register(Content.ContainerTypes.FLUIDIZER_CONTROLLER.get(), FluidizerControllerScreen::new);
+
+        // Energizer GUIS
+        event.register(Content.ContainerTypes.ENERGIZER_CONTROLLER.get(), EnergizerControllerScreen::new);
+        event.register(Content.ContainerTypes.ENERGIZER_POWERPORT.get(), EnergizerPowerPortScreen::new);
+        event.register(Content.ContainerTypes.ENERGIZER_CHARGINGPORT.get(), EnergizerChargingPortScreen::new);
+    }
+
+    private static void onRegisterClientExtensionsEvent(RegisterClientExtensionsEvent event) {
+
+        Content.Fluids.forEachType(type -> {
+
+            if (type instanceof ReactorFluidType reactorFluidType) {
+                event.registerFluidType(new ReactorFluidRenderProperties(reactorFluidType), reactorFluidType);
+            }
+        });
+
+        event.registerFluidType(new SimpleFluidTypeRenderProperties(0xffffffff,
+                        CommonConstants.FLUID_TEXTURE_SOURCE_WATER, CommonConstants.FLUID_TEXTURE_FLOWING_WATER,
+                        CommonConstants.FLUID_TEXTURE_OVERLAY_WATER), Content.Fluids.STEAM_FLUID_TYPE.get());
+    }
+
+    private void onAddReloadListener(AddReloadListenerEvent event) {
+
+        event.addListener(this);
+        event.addListener(GuiTheme.ER);
+    }
+
+    private void onRegisterModels(final ModelEvent.RegisterAdditional event) {
+        this._modelBuilders.get().forEach(b -> b.onRegisterModels(event));
+    }
+
+    private void onModelBake(final ModelEvent.ModifyBakingResult event) {
+        this._modelBuilders.get().forEach(builder -> builder.onBakeModels(event));
+    }
+
+    private void onItemTooltip(final ItemTooltipEvent event) {
+
+        if (!Config.CLIENT.disableApiTooltips.get() && event.getFlags().isAdvanced()) {
+            event.getToolTip().addAll(this.getApiTooltipCache().getOrDefault(event.getItemStack().getItem(), Collections.emptySet()));
+        }
+    }
+
+    private static void onRegisterBlockColorHandlers(final RegisterColorHandlersEvent.Block event) {
+        event.register(new ReactorFuelRodBlockColor(),
+                Content.Blocks.REACTOR_FUELROD_BASIC.get(),
+                Content.Blocks.REACTOR_FUELROD_REINFORCED.get());
+    }
+
+    private static void onRegisterItemColorHandlers(RegisterColorHandlersEvent.Item event) {
+        event.register(TintedBucketItem::getTintColour,
+                Content.Items.YELLORIUM_BUCKET.get(), Content.Items.CYANITE_BUCKET.get(),
+                Content.Items.BLUTONIUM_BUCKET.get(), Content.Items.MAGENTITE_BUCKET.get(),
+                Content.Items.VERDERIUM_BUCKET.get(), Content.Items.ROSSINITE_BUCKET.get(),
+                Content.Items.STEAM_BUCKET.get(),
+                Content.Items.CRYOMISI_BUCKET.get(), Content.Items.TANGERIUM_BUCKET.get(),
+                Content.Items.REDFRIGIUM_BUCKET.get());
+    }
+
+    private static ModBakedModelSupplier s_bakedModelSupplier;
+
+    private Supplier<List<ICustomModelBuilder>> _modelBuilders;
+
+    private Map<Item, Set<Component>> _apiTooltipCache;
 
     //endregion
 }

@@ -1,0 +1,38 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "bigreactors:reactants",
+  "ingredients": [
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    },
+    {
+      "item": "bigreactors:blutonium_ingot"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:blutonium_block"
+  }
+}

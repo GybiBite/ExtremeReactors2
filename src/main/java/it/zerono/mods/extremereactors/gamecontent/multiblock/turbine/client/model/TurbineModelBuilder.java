@@ -19,88 +19,78 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.model;
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.model.AbstractMultiblockModelBuilder;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.TurbinePartType;
+import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.variant.TurbineVariant;
-import net.minecraft.util.ResourceLocation;
+import it.zerono.mods.zerocore.base.multiblock.client.model.AbstractCuboidMultiblockModelBuilder;
 
-import java.util.function.Predicate;
+public abstract class TurbineModelBuilder
+        extends AbstractCuboidMultiblockModelBuilder {
 
-public class TurbineModelBuilder
-        extends AbstractMultiblockModelBuilder<TurbinePartType> {
+    public static class Basic
+            extends TurbineModelBuilder {
 
-    public TurbineModelBuilder(final TurbineVariant variant) {
+        public Basic() {
+            super(TurbineVariant.Basic);
+        }
 
-        super(getModelRL(variant, "assembledplating"), true);
+        @Override
+        public void build() {
 
-        final Predicate<TurbinePartType> isPartCompatible = variant::isPartCompatible;
+            this.addCasing(Content.Blocks.TURBINE_CASING_BASIC.get());
+            this.addController(Content.Blocks.TURBINE_CONTROLLER_BASIC.get());
+            this.addDevice(Content.Blocks.TURBINE_ROTORBEARING_BASIC.get());
+            this.addDevice(Content.Blocks.TURBINE_CREATIVE_STEAM_GENERATOR_BASIC.get());
+            this.addIoPort(Content.Blocks.TURBINE_REDSTONEPORT_BASIC.get(), "redstoneport_on");
+            this.addDevice(Content.Blocks.TURBINE_CHARGINGPORT_FE_BASIC.get());
+            this.addIoPort(Content.Blocks.TURBINE_POWERTAP_FE_PASSIVE_BASIC.get());
+            this.addIoPort(Content.Blocks.TURBINE_POWERTAP_FE_ACTIVE_BASIC.get());
+            this.addIoPort(Content.Blocks.TURBINE_FLUIDPORT_FORGE_ACTIVE_BASIC.get(),
+                    "fluidport_forge_active_cold_connected",
+                    "fluidport_forge_active_hot",
+                    "fluidport_forge_active_hot_connected");
+            this.addIoPort(Content.Blocks.TURBINE_FLUIDPORT_FORGE_PASSIVE_BASIC.get(),
+                    "fluidport_forge_passive_cold_connected",
+                    "fluidport_forge_passive_hot",
+                    "fluidport_forge_passive_hot_connected");
 
-        this.addBlockWithVariants(TurbinePartType.Casing, variant, isPartCompatible, "casing",
-                "casing_01_face",
-                "casing_02_frame_ds",
-                "casing_03_frame_de",
-                "casing_04_frame_dn",
-                "casing_05_frame_dw",
-                "casing_06_frame_us",
-                "casing_07_frame_ue",
-                "casing_08_frame_un",
-                "casing_09_frame_uw",
-                "casing_10_frame_se",
-                "casing_11_frame_ne",
-                "casing_12_frame_nw",
-                "casing_13_frame_sw",
-                "casing_14_corner_dsw",
-                "casing_15_corner_dse",
-                "casing_16_corner_dne",
-                "casing_17_corner_dnw",
-                "casing_18_corner_usw",
-                "casing_19_corner_use",
-                "casing_20_corner_une",
-                "casing_21_corner_unw");
-
-        this.addBlockWithVariants(TurbinePartType.PassivePowerTapFE, variant, isPartCompatible, "powertapfe_passive");
-        this.addBlockWithVariants(TurbinePartType.ActivePowerTapFE, variant, isPartCompatible, "powertapfe_active");
-
-        this.addBlockWithVariants(TurbinePartType.RotorBearing, variant, isPartCompatible, "rotorbearing");
-
-        this.addBlockWithVariants(TurbinePartType.ActiveFluidPortForge, variant, isPartCompatible, "fluidport_forge_active",
-                "fluidport_forge_active_cold_connected",
-                "fluidport_forge_active_hot",
-                "fluidport_forge_active_hot_connected");
-
-        this.addBlockWithVariants(TurbinePartType.PassiveFluidPortForge, variant, isPartCompatible, "fluidport_forge_passive",
-                "fluidport_forge_passive_cold_connected",
-                "fluidport_forge_passive_hot",
-                "fluidport_forge_passive_hot_connected");
-
-        this.addBlockWithVariants(TurbinePartType.CreativeSteamGenerator, variant, isPartCompatible, "creativesteamgenerator");
-
-        this.addBlockWithVariants(TurbinePartType.Controller, variant, isPartCompatible, "controller",
-                "controller_on",
-                "controller_off");
-
-        this.addBlockWithVariants(TurbinePartType.ComputerPort, variant, isPartCompatible, "computerport",
-                "computerport_connected");
-
-        this.addBlockWithVariants(TurbinePartType.RedstonePort, variant, isPartCompatible, "redstoneport",
-                "redstoneport_on");
-
-        this.addBlockWithVariants(TurbinePartType.ChargingPortFE, variant, isPartCompatible, "chargingportfe");
+            this.setFallbackModelData(Content.Blocks.TURBINE_CASING_BASIC.get());
+        }
     }
 
-    //region AbstractMultiblockModelBuilder
+    public static class Reinforced
+            extends TurbineModelBuilder {
 
-    @Override
-    protected String getMultiblockShortName() {
-        return "turbine";
+        public Reinforced() {
+            super(TurbineVariant.Reinforced);
+        }
+
+        @Override
+        public void build() {
+
+            this.addCasing(Content.Blocks.TURBINE_CASING_REINFORCED.get());
+            this.addController(Content.Blocks.TURBINE_CONTROLLER_REINFORCED.get());
+            this.addDevice(Content.Blocks.TURBINE_ROTORBEARING_REINFORCED.get());
+            this.addDevice(Content.Blocks.TURBINE_CREATIVE_STEAM_GENERATOR_REINFORCED.get());
+            this.addIoPort(Content.Blocks.TURBINE_REDSTONEPORT_REINFORCED.get(), "redstoneport_on");
+            this.addDevice(Content.Blocks.TURBINE_CHARGINGPORT_FE_REINFORCED.get());
+            this.addIoPort(Content.Blocks.TURBINE_POWERTAP_FE_PASSIVE_REINFORCED.get());
+            this.addIoPort(Content.Blocks.TURBINE_POWERTAP_FE_ACTIVE_REINFORCED.get());
+            this.addIoPort(Content.Blocks.TURBINE_COMPUTERPORT_REINFORCED.get(), "computerport_connected");
+            this.addIoPort(Content.Blocks.TURBINE_FLUIDPORT_FORGE_PASSIVE_REINFORCED.get(),
+                    "fluidport_forge_passive_cold_connected",
+                    "fluidport_forge_passive_hot",
+                    "fluidport_forge_passive_hot_connected");
+            this.addIoPort(Content.Blocks.TURBINE_FLUIDPORT_FORGE_ACTIVE_REINFORCED.get(),
+                    "fluidport_forge_passive_cold_connected",
+                    "fluidport_forge_passive_hot",
+                    "fluidport_forge_passive_hot_connected");
+
+            this.setFallbackModelData(Content.Blocks.TURBINE_CASING_REINFORCED.get());
+        }
     }
 
-    //endregion
-    //region internals
-
-    protected static ResourceLocation getModelRL(final TurbineVariant variant, final String modelName) {
-        return ExtremeReactors.newID("block/turbine/" + variant.getName() + "/" + modelName);
+    protected TurbineModelBuilder(TurbineVariant variant) {
+        super("assembledplating", true,
+                ExtremeReactors.ROOT_LOCATION.appendPath("block", "turbine", variant.getName()));
     }
-
-    //endregion
 }

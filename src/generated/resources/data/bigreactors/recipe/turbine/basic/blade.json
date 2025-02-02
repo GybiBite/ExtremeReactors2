@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": {
+      "tag": "c:ingots/cyanite"
+    },
+    "I": {
+      "tag": "c:ingots/iron"
+    }
+  },
+  "pattern": [
+    "ICI"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:basic_turbinerotorblade"
+  }
+}

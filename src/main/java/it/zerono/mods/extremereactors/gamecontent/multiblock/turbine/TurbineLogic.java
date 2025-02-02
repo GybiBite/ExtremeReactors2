@@ -19,10 +19,9 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine;
 
 import it.zerono.mods.extremereactors.api.coolant.Vapor;
-import it.zerono.mods.extremereactors.config.Config;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.IFluidContainer;
 import it.zerono.mods.zerocore.lib.energy.WideEnergyBuffer;
-import net.minecraft.profiler.IProfiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 public class TurbineLogic {
 
@@ -38,11 +37,9 @@ public class TurbineLogic {
      */
     public void update() {
 
-        final IProfiler profiler = this._turbine.getWorld().getProfiler();
+        final ProfilerFiller profiler = this._turbine.getWorld().getProfiler();
         final IFluidContainer fc = this._turbine.getFluidContainer();
         final VentSetting ventSetting = this._data.getVentSetting();
-
-        this.resetStats();
 
         // Generate energy based on vapor
 
@@ -152,21 +149,13 @@ public class TurbineLogic {
      */
     private void generateEnergy(double rawEnergy) {
 
-        rawEnergy = rawEnergy * Config.COMMON.general.powerProductionMultiplier.get() *
-                Config.COMMON.turbine.turbinePowerProductionMultiplier.get();
+        rawEnergy = rawEnergy * MultiblockTurbine.getAdjustedPowerProductionMultiplier();
 
         this._energyBuffer.grow(rawEnergy);
-        this._data.changeEnergyGeneratedLastTick(rawEnergy);
+        this._data.setEnergyGeneratedLastTick(rawEnergy);
     }
 
     //endregion
-
-    private void resetStats() {
-
-        this._data.setEnergyGeneratedLastTick(0f);
-        this._data.setFluidConsumedLastTick(0);
-        this._data.setRotorEfficiencyLastTick(1.0f);
-    }
 
     private final ITurbineReader _turbine;
     private final TurbineData _data;

@@ -21,17 +21,16 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.mod
 import it.unimi.dsi.fastutil.shorts.Short2ObjectArrayMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.ClientFuelRodsLayout;
-import it.zerono.mods.zerocore.lib.client.model.data.AbstractModelDataMap;
 import it.zerono.mods.zerocore.lib.client.model.data.NamedModelProperty;
-import net.minecraft.util.Direction;
-import net.minecraftforge.client.model.data.ModelProperty;
+import net.minecraft.core.Direction;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelProperty;
 
 import java.util.Objects;
 
-public class ReactorFuelRodModelData
-        extends AbstractModelDataMap {
+public final class ReactorFuelRodModelData {
 
-    public static final ReactorFuelRodModelData DEFAULT;
+    public static final ModelData DEFAULT;
 
     public static final ModelProperty<Short> REACTANTS_MODEL_KEY = new NamedModelProperty<>("REACTANTS_MODEL_KEY", Objects::nonNull);
     public static final ModelProperty<Direction.Axis> ORIENTATION = new NamedModelProperty<>("ORIENTATION", Objects::nonNull);
@@ -39,60 +38,53 @@ public class ReactorFuelRodModelData
     public static final ModelProperty<Byte> FUEL_LEVEL = new NamedModelProperty<>("FUEL_LEVEL", Objects::nonNull);
     public static final ModelProperty<Byte> WASTE_LEVEL = new NamedModelProperty<>("WASTE_LEVEL", Objects::nonNull);
 
-    public static ReactorFuelRodModelData from(ClientFuelRodsLayout.FuelData fuelData, boolean rodIsOccluded) {
+    public static ModelData from(ClientFuelRodsLayout.FuelData fuelData, boolean rodIsOccluded) {
         return from(fuelData.getOrientation(), fuelData.getFuelLevel(), fuelData.getWasteLevel(), rodIsOccluded);
     }
 
-    public short getModelKey() {
+    public static short getModelKey(final ModelData data) {
 
-        final Short v = this.getData(REACTANTS_MODEL_KEY);
+        final Short v = data.get(REACTANTS_MODEL_KEY);
 
         //noinspection AutoUnboxing
-        return null != v ? v : (short) 0;
+        return null != v ? v : (short)0;
     }
 
-    public Direction.Axis getOrientation() {
+    public static Direction.Axis getOrientation(final ModelData data) {
 
-        final Direction.Axis v = this.getData(ORIENTATION);
+        final Direction.Axis v = data.get(ORIENTATION);
 
         //noinspection AutoUnboxing
         return null == v ? Direction.Axis.X : v;
     }
 
-    public boolean isOccluded() {
+    public static boolean isOccluded(final ModelData data) {
 
-        final Boolean v = this.getData(OCCLUDED);
+        final Boolean v = data.get(OCCLUDED);
 
         //noinspection AutoUnboxing
         return null != v && v;
     }
 
-    public byte getFuelLevel() {
+    public static byte getFuelLevel(final ModelData data) {
 
-        final Byte v = this.getData(FUEL_LEVEL);
+        final Byte v = data.get(FUEL_LEVEL);
 
         //noinspection AutoUnboxing
-        return null != v ? v : (byte) 0;
+        return null != v ? v : (byte)0;
     }
 
-    public byte getWasteLevel() {
+    public static byte getWasteLevel(final ModelData data) {
 
-        final Byte v = this.getData(WASTE_LEVEL);
+        final Byte v = data.get(WASTE_LEVEL);
 
         //noinspection AutoUnboxing
-        return null != v ? v : (byte) 0;
+        return null != v ? v : (byte)0;
     }
 
     //region internals
 
-    private ReactorFuelRodModelData(int dataKey, Direction.Axis axis, byte fuelLevel, byte wasteLevel, boolean rodIsOccluded) {
-
-        super(5);
-        this.addProperty(REACTANTS_MODEL_KEY, (short) (dataKey & 0xFF));
-        this.addProperty(ORIENTATION, axis);
-        this.addProperty(OCCLUDED, rodIsOccluded);
-        this.addProperty(FUEL_LEVEL, fuelLevel);
-        this.addProperty(WASTE_LEVEL, wasteLevel);
+    private ReactorFuelRodModelData() {
     }
 
     private static short createKey(Direction.Axis axis, byte fuelLevel, byte wasteLevel, boolean rodIsOccluded) {
@@ -117,12 +109,18 @@ public class ReactorFuelRodModelData
         return (short) (orientation | (rodIsOccluded ? 0x2000 : 0) | (fuelLevel << 4) | (wasteLevel & 0xf));
     }
 
-    private static ReactorFuelRodModelData from(Direction.Axis axis, byte fuelLevel, byte wasteLevel, boolean rodIsOccluded) {
+    private static ModelData from(Direction.Axis axis, byte fuelLevel, byte wasteLevel, boolean rodIsOccluded) {
         return s_cache.computeIfAbsent(createKey(axis, fuelLevel, wasteLevel, rodIsOccluded),
-                k -> new ReactorFuelRodModelData(k, axis, fuelLevel, wasteLevel, rodIsOccluded));
+                k -> ModelData.builder()
+                        .with(REACTANTS_MODEL_KEY, (short)(k & 0xFF))
+                        .with(ORIENTATION, axis)
+                        .with(OCCLUDED, rodIsOccluded)
+                        .with(FUEL_LEVEL, fuelLevel)
+                        .with(WASTE_LEVEL, wasteLevel)
+                        .build());
     }
 
-    private static final Short2ObjectMap<ReactorFuelRodModelData> s_cache;
+    private static final Short2ObjectMap<ModelData> s_cache;
 
     static {
 

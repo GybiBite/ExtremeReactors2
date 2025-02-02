@@ -21,18 +21,18 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.common.part;
 import it.zerono.mods.zerocore.base.multiblock.part.io.IOPortBlock;
 import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartType;
 import it.zerono.mods.zerocore.lib.multiblock.IMultiblockController;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.world.World;
-import net.minecraftforge.fluids.FluidUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.neoforged.neoforge.fluids.FluidUtil;
 
 public class PassiveFluidPortBlock<Controller extends IMultiblockController<Controller>,
-        PartType extends Enum<PartType> & IMultiblockPartType>
+        PartType extends IMultiblockPartType>
     extends IOPortBlock<Controller, PartType> {
 
     public PassiveFluidPortBlock(final MultiblockPartProperties<PartType> properties) {
@@ -42,10 +42,10 @@ public class PassiveFluidPortBlock<Controller extends IMultiblockController<Cont
     //region Block
 
     @Override
-    public ActionResultType use(BlockState state, World world, BlockPos position, PlayerEntity player,
-                                             Hand hand, BlockRayTraceResult hit) {
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos position,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
 
-        if (Hand.MAIN_HAND == hand) {
+        if (InteractionHand.MAIN_HAND == hand) {
 
             final ItemStack heldItem = player.getMainHandItem();
 
@@ -54,12 +54,12 @@ public class PassiveFluidPortBlock<Controller extends IMultiblockController<Cont
                 if (FluidUtil.getFluidHandler(world, position, null)
                         .map(port -> FluidUtil.interactWithFluidHandler(player, hand, port))
                         .orElse(false)) {
-                    return ActionResultType.SUCCESS;
+                    return ItemInteractionResult.SUCCESS;
                 }
             }
         }
 
-        return super.use(state, world, position, player, hand, hit);
+        return super.useItemOn(stack, state, world, position, player, hand, hit);
     }
 
     //endregion

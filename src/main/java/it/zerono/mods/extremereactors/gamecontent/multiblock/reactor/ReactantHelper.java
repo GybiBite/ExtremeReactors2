@@ -25,17 +25,18 @@ import it.zerono.mods.extremereactors.api.reactor.*;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.IMultiblockReactorVariant;
 import it.zerono.mods.zerocore.lib.data.stack.OperationMode;
 import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
-import it.zerono.mods.zerocore.lib.item.ItemHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.event.TagsUpdatedEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -177,7 +178,7 @@ public class ReactantHelper {
 
     private static int refuelSolid(final FuelContainer container, final IFuelSource<ItemStack> fuelSource,
                                    final IMultiblockReactorVariant variant, final ItemStack fuelSourceStack,
-                                   final IMapping<ResourceLocation, Reactant> fuelMapping) {
+                                   final IMapping<TagKey<Item>, Reactant> fuelMapping) {
 
         // convert the source items to the equivalent amount of Reactant
 
@@ -201,7 +202,7 @@ public class ReactantHelper {
 
         // ask the port to consume as much source items as possible to fill the available space
 
-        final ItemStack maxSourceToConsume = ItemHelper.stackFrom(fuelSourceStack, fuelMapping.getSourceAmount(storableReactantAmount));
+        final ItemStack maxSourceToConsume = fuelSourceStack.copyWithCount(fuelMapping.getSourceAmount(storableReactantAmount));
 
         if (!maxSourceToConsume.isEmpty()) {
 
@@ -211,12 +212,12 @@ public class ReactantHelper {
 
                 // how much Reactant should we add to the FuelContainer given the consumed source items?
 
-                final float conversionEfficiency = MathHelper.clamp(variant.getSolidFuelConversionEfficiency(), 0f, 1f);
+                final float conversionEfficiency = Mth.clamp(variant.getSolidFuelConversionEfficiency(), 0f, 1f);
                 int amountToAdd = fuelMapping.getProductAmount(fuelConsumedStack.getCount());
 
                 if (conversionEfficiency < 1.0f) {
                     // apply any variant-specific penalties
-                    amountToAdd = (MathHelper.floor(amountToAdd * conversionEfficiency));
+                    amountToAdd = (Mth.floor(amountToAdd * conversionEfficiency));
                 }
 
                 amountToAdd = Math.min(storableReactantAmount, amountToAdd);
@@ -254,7 +255,7 @@ public class ReactantHelper {
 
     private static int refuelFluid(final FuelContainer container, final IFuelSource<FluidStack> fuelSource,
                                    final IMultiblockReactorVariant variant, final FluidStack fuelSourceStack,
-                                   final IMapping<ResourceLocation, Reactant> fuelMapping) {
+                                   final IMapping<TagKey<Fluid>, Reactant> fuelMapping) {
 
         // 1 mb of fluid fuel is 1 mb of fuel.
 
@@ -310,7 +311,7 @@ public class ReactantHelper {
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
-    public static void onVanillaTagsUpdated(final TagsUpdatedEvent.VanillaTagTypes event) {
+    public static void onVanillaTagsUpdated(final TagsUpdatedEvent event) {
         s_moderatorsCache.invalidateAll();
     }
 

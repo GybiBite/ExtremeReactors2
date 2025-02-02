@@ -20,32 +20,26 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.recipe;
 
 import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.zerocore.lib.data.stack.OperationMode;
-import it.zerono.mods.zerocore.lib.datagen.provider.recipe.OneToOneRecipeBuilder;
 import it.zerono.mods.zerocore.lib.recipe.AbstractOneToOneRecipe;
 import it.zerono.mods.zerocore.lib.recipe.ModRecipe;
 import it.zerono.mods.zerocore.lib.recipe.holder.AbstractHeldRecipe;
 import it.zerono.mods.zerocore.lib.recipe.holder.IRecipeHolder;
-import it.zerono.mods.zerocore.lib.recipe.ingredient.IRecipeIngredient;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.IRecipeIngredientSource;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.ItemStackRecipeIngredient;
 import it.zerono.mods.zerocore.lib.recipe.result.FluidStackRecipeResult;
-import it.zerono.mods.zerocore.lib.recipe.result.IRecipeResult;
 import it.zerono.mods.zerocore.lib.recipe.result.IRecipeResultTarget;
-import it.zerono.mods.zerocore.lib.recipe.serializer.OneToOneRecipeSerializer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.IRecipeType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FluidizerSolidRecipe
         extends AbstractOneToOneRecipe<ItemStack, FluidStack, ItemStackRecipeIngredient, FluidStackRecipeResult>
         implements IFluidizerRecipe {
 
-    protected FluidizerSolidRecipe(final ResourceLocation id, final ItemStackRecipeIngredient ingredient,
-                                   final FluidStackRecipeResult result) {
+    public FluidizerSolidRecipe(ItemStackRecipeIngredient ingredient, FluidStackRecipeResult result) {
 
-        super(id, ingredient, result);
+        super(ingredient, result);
         s_maxResultAmount = Math.max(s_maxResultAmount, result.getAmount());
     }
 
@@ -70,15 +64,11 @@ public class FluidizerSolidRecipe
         return this.getIngredient().testIgnoreAmount(stack);
     }
 
-    public static IRecipeSerializer<FluidizerSolidRecipe> serializer() {
-        return new OneToOneRecipeSerializer<>(FluidizerSolidRecipe::new,
-                ItemStackRecipeIngredient::from, ItemStackRecipeIngredient::from,
-                FluidStackRecipeResult::from, FluidStackRecipeResult::from);
-    }
-
-    public static OneToOneRecipeBuilder<ItemStack, FluidStack> builder(final IRecipeIngredient<ItemStack> ingredient,
-                                                                       final IRecipeResult<FluidStack> result) {
-        return new OneToOneRecipeBuilder<>(Type.Solid.getRecipeId(), ingredient, result);
+    public static RecipeSerializer<FluidizerSolidRecipe> createSerializer() {
+        return AbstractOneToOneRecipe.createSerializer(
+                "ingredient", ItemStackRecipeIngredient.CODECS,
+                "result", FluidStackRecipeResult.CODECS,
+                FluidizerSolidRecipe::new);
     }
 
     //region IFluidizerRecipe
@@ -92,13 +82,13 @@ public class FluidizerSolidRecipe
     //region AbstractOneToOneRecipe
 
     @Override
-    public IRecipeSerializer<FluidizerSolidRecipe> getSerializer() {
+    public RecipeSerializer<FluidizerSolidRecipe> getSerializer() {
         return Content.Recipes.FLUIDIZER_SOLID_RECIPE_SERIALIZER.get();
     }
 
     @Override
-    public IRecipeType<?> getType() {
-        return Content.Recipes.FLUIDIZER_RECIPE_TYPE;
+    public RecipeType<?> getType() {
+        return Content.Recipes.FLUIDIZER_RECIPE_TYPE.get();
     }
 
     //endregion

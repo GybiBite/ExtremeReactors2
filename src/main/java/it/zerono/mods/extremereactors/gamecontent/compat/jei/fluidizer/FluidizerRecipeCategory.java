@@ -18,14 +18,13 @@
 
 package it.zerono.mods.extremereactors.gamecontent.compat.jei.fluidizer;
 
-import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
-import it.zerono.mods.extremereactors.ExtremeReactors;
+import it.zerono.mods.extremereactors.CommonLocations;
 import it.zerono.mods.extremereactors.config.Config;
 import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.extremereactors.gamecontent.compat.jei.ExtremeReactorsJeiPlugin;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.CommonIcons;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.MultiblockFluidizer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.recipe.FluidizerFluidMixingRecipe;
@@ -43,147 +42,83 @@ import it.zerono.mods.zerocore.lib.compat.jei.drawable.ProgressBarDrawable;
 import it.zerono.mods.zerocore.lib.data.geometry.Rectangle;
 import it.zerono.mods.zerocore.lib.recipe.ModRecipe;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.IRecipeLayout;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.drawable.IDrawableAnimated;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
-import mezz.jei.api.gui.ingredient.IGuiFluidStackGroup;
-import mezz.jei.api.gui.ingredient.IGuiItemStackGroup;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
-import mezz.jei.api.ingredients.IIngredients;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.fluids.FluidStack;
+import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.RecipeType;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public abstract class FluidizerRecipeCategory
-        extends AbstractModRecipeCategory<ModRecipe> {
+public abstract class FluidizerRecipeCategory<T extends ModRecipe & IFluidizerRecipe>
+        extends AbstractModRecipeCategory<T> {
 
-    public static FluidizerRecipeCategory solid(final IGuiHelper guiHelper) {
-        return new FluidizerRecipeCategory(IFluidizerRecipe.Type.Solid, "compat.bigreactors.jei.fluidizer.recipecategory.solid.title",
+    public static FluidizerRecipeCategory<FluidizerSolidRecipe> solid(final IGuiHelper guiHelper) {
+        return new FluidizerRecipeCategory<>(ExtremeReactorsJeiPlugin.FLUIDIZER_SOLID_JEI_RECIPE_TYPE,
+                IFluidizerRecipe.Type.Solid, "compat.bigreactors.jei.fluidizer.recipecategory.solid.title",
                 guiHelper, Content.Blocks.FLUIDIZER_SOLIDINJECTOR) {
 
             @Override
-            public void setIngredients(final ModRecipe recipe, final IIngredients ingredients) {
+            public void setRecipe(final IRecipeLayoutBuilder builder, final FluidizerSolidRecipe recipe, final IFocusGroup focuses) {
 
-                super.setIngredients(recipe, ingredients);
+                super.setRecipe(builder, recipe, focuses);
 
-                if (recipe instanceof FluidizerSolidRecipe) {
+                // input solid ingredient
 
-                    final FluidizerSolidRecipe solidRecipe = (FluidizerSolidRecipe)recipe;
-
-                    ingredients.setInputs(VanillaTypes.ITEM, solidRecipe.getIngredient().getMatchingElements());
-                    ingredients.setOutput(VanillaTypes.FLUID, solidRecipe.getResult().getResult());
-                }
-            }
-
-            @Override
-            public void setRecipe(final IRecipeLayout layout, final ModRecipe recipe, final IIngredients ingredients) {
-
-                final IGuiItemStackGroup items = layout.getItemStacks();
-                final IGuiFluidStackGroup fluids = layout.getFluidStacks();
-
-                items.init(0, true, 25, 46);
-                items.set(ingredients);
-
-                fluids.init(0, false, 71, 23, 16, 64, (int)FluidizerSolidRecipe.getMaxResultAmount(), true, null);
-                fluids.set(ingredients);
-            }
-
-            @Override
-            public boolean isHandled(final ModRecipe recipe) {
-                return recipe instanceof FluidizerSolidRecipe;
+                builder.addSlot(RecipeIngredientRole.INPUT, 26, 47)
+                        .addIngredients(VanillaTypes.ITEM_STACK, recipe.getIngredient().getMatchingElements());
             }
         };
     }
 
-    public static FluidizerRecipeCategory solidMixing(final IGuiHelper guiHelper) {
-        return new FluidizerRecipeCategory(IFluidizerRecipe.Type.SolidMixing, "compat.bigreactors.jei.fluidizer.recipecategory.solidmixing.title",
+    public static FluidizerRecipeCategory<FluidizerSolidMixingRecipe> solidMixing(final IGuiHelper guiHelper) {
+        return new FluidizerRecipeCategory<>(ExtremeReactorsJeiPlugin.FLUIDIZER_SOLIDMIXING_JEI_RECIPE_TYPE,
+                IFluidizerRecipe.Type.SolidMixing, "compat.bigreactors.jei.fluidizer.recipecategory.solidmixing.title",
                 guiHelper, Content.Blocks.FLUIDIZER_SOLIDINJECTOR) {
 
             @Override
-            public void setIngredients(final ModRecipe recipe, final IIngredients ingredients) {
+            public void setRecipe(final IRecipeLayoutBuilder builder, final FluidizerSolidMixingRecipe recipe, final IFocusGroup focuses) {
 
-                super.setIngredients(recipe, ingredients);
+                super.setRecipe(builder, recipe, focuses);
 
-                if (recipe instanceof FluidizerSolidMixingRecipe) {
+                builder.addSlot(RecipeIngredientRole.INPUT, 26, 47)
+                        .addIngredients(VanillaTypes.ITEM_STACK, recipe.getIngredient1().getMatchingElements());
 
-                    final FluidizerSolidMixingRecipe solidRecipe = (FluidizerSolidMixingRecipe)recipe;
-
-                    ingredients.setInputLists(VanillaTypes.ITEM,
-                            Lists.newArrayList(solidRecipe.getIngredient1().getMatchingElements(),
-                                    solidRecipe.getIngredient2().getMatchingElements()));
-
-                    ingredients.setOutput(VanillaTypes.FLUID, solidRecipe.getResult().getResult());
-                }
-            }
-
-            @Override
-            public void setRecipe(final IRecipeLayout layout, final ModRecipe recipe, final IIngredients ingredients) {
-
-                final IGuiItemStackGroup items = layout.getItemStacks();
-                final IGuiFluidStackGroup fluids = layout.getFluidStacks();
-
-                items.init(0, true, 25, 46);
-                items.set(ingredients);
-
-                items.init(1, true, 115, 46);
-                items.set(ingredients);
-
-                fluids.init(0, false, 71, 23, 16, 64, (int)FluidizerSolidMixingRecipe.getMaxResultAmount(), true, null);
-                fluids.set(ingredients);
-            }
-
-            @Override
-            public boolean isHandled(final ModRecipe recipe) {
-                return recipe instanceof FluidizerSolidMixingRecipe;
+                builder.addSlot(RecipeIngredientRole.INPUT, 116, 47)
+                        .addIngredients(VanillaTypes.ITEM_STACK, recipe.getIngredient2().getMatchingElements());
             }
         };
     }
 
-    public static FluidizerRecipeCategory fluidMixing(final IGuiHelper guiHelper) {
-        return new FluidizerRecipeCategory(IFluidizerRecipe.Type.FluidMixing, "compat.bigreactors.jei.fluidizer.recipecategory.fluidmixing.title",
+    public static FluidizerRecipeCategory<FluidizerFluidMixingRecipe> fluidMixing(final IGuiHelper guiHelper) {
+        return new FluidizerRecipeCategory<>(ExtremeReactorsJeiPlugin.FLUIDIZER_FLUIDMIXING_JEI_RECIPE_TYPE,
+                IFluidizerRecipe.Type.FluidMixing, "compat.bigreactors.jei.fluidizer.recipecategory.fluidmixing.title",
                 guiHelper, Content.Blocks.FLUIDIZER_FLUIDINJECTOR) {
 
             @Override
-            public void setIngredients(final ModRecipe recipe, final IIngredients ingredients) {
+            public void setRecipe(final IRecipeLayoutBuilder builder, final FluidizerFluidMixingRecipe recipe, final IFocusGroup focuses) {
 
-                super.setIngredients(recipe, ingredients);
+                super.setRecipe(builder, recipe, focuses);
 
-                if (recipe instanceof FluidizerFluidMixingRecipe) {
+                builder.addSlot(RecipeIngredientRole.INPUT, 26, 23)
+                        .setFluidRenderer(FluidizerFluidMixingRecipe.getMaxResultAmount(), false, 16, 64)
+                        .addIngredients(NeoForgeTypes.FLUID_STACK, recipe.getIngredient1().getMatchingElements());
 
-                    final FluidizerFluidMixingRecipe fluidRecipe = (FluidizerFluidMixingRecipe)recipe;
-
-                    ingredients.setInputLists(VanillaTypes.FLUID,
-                            Lists.newArrayList(fluidRecipe.getIngredient1().getMatchingElements(),
-                                    fluidRecipe.getIngredient2().getMatchingElements()));
-
-                    ingredients.setOutput(VanillaTypes.FLUID, fluidRecipe.getResult().getResult());
-                }
-            }
-
-            @Override
-            public void setRecipe(final IRecipeLayout layout, final ModRecipe recipe, final IIngredients ingredients) {
-
-                final IGuiFluidStackGroup stacks = layout.getFluidStacks();
-
-                stacks.init(0, true, 26, 23, 16, 64, (int)FluidizerFluidMixingRecipe.getMaxResultAmount(), true, null);
-                stacks.set(ingredients);
-
-                stacks.init(1, true, 116, 23, 16, 64, (int)FluidizerFluidMixingRecipe.getMaxResultAmount(), true, null);
-                stacks.set(ingredients);
-
-                stacks.init(2, false, 71, 23, 16, 64, (int)FluidizerFluidMixingRecipe.getMaxResultAmount(), true, null);
-                stacks.set(ingredients);
-            }
-
-            @Override
-            public boolean isHandled(final ModRecipe recipe) {
-                return recipe instanceof FluidizerFluidMixingRecipe;
+                builder.addSlot(RecipeIngredientRole.INPUT, 116, 23)
+                        .setFluidRenderer(FluidizerFluidMixingRecipe.getMaxResultAmount(), false, 16, 64)
+                        .addIngredients(NeoForgeTypes.FLUID_STACK, recipe.getIngredient2().getMatchingElements());
             }
         };
     }
@@ -191,73 +126,67 @@ public abstract class FluidizerRecipeCategory
     //region AbstractModRecipeCategory
 
     @Override
-    public Class<? extends ModRecipe> getRecipeClass() {
-        return ModRecipe.class;
-    }
-
-    @Override
-    public void setIngredients(final ModRecipe recipe, final IIngredients ingredients) {
-
-        if (!(recipe instanceof IFluidizerRecipe)) {
-            return;
-        }
-
-        final IFluidizerRecipe fluidizerRecipe = (IFluidizerRecipe)recipe;
+    public void setRecipe(final IRecipeLayoutBuilder builder, final T recipe, final IFocusGroup focuses) {
 
         // energy ingredient
 
         final int energyCost = Config.COMMON.fluidizer.energyPerRecipeTick.get() *
-                fluidizerRecipe.getEnergyUsageMultiplier() * fluidizerRecipe.getRecipeType().getTicks();
+                recipe.getEnergyUsageMultiplier() * recipe.getRecipeType().getTicks();
 
         this._powerBar.setProgress(MultiblockFluidizer.ENERGY_CAPACITY.doubleValue(), energyCost);
         this.addTooltips(this._powerBarArea,
-                new TranslationTextComponent("compat.bigreactors.jei.common.recipecategory.energy.tooltip.title").setStyle(CommonConstants.STYLE_TOOLTIP_TITLE),
+                Component.translatable("compat.bigreactors.jei.common.recipecategory.energy.tooltip.title").setStyle(CommonConstants.STYLE_TOOLTIP_TITLE),
                 CodeHelper.TEXT_EMPTY_LINE,
-                new StringTextComponent(String.format("%d FE", energyCost)).setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
+                Component.literal(String.format("%d FE", energyCost)).setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
 
         // recipe output
 
-        final FluidStack output = fluidizerRecipe.getResult().getResult();
-
-        ingredients.setOutput(VanillaTypes.FLUID, output);
+        final FluidStack output = recipe.getResult().getResult();
 
         this.addTooltips(71, 47,
                 BaseHelper.getFluidNameOrEmpty(output).setStyle(CommonConstants.STYLE_TOOLTIP_TITLE),
                 CodeHelper.TEXT_EMPTY_LINE,
-                new StringTextComponent(String.format("%d mB", output.getAmount())).setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
+                Component.literal(String.format("%d mB", output.getAmount())).setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
+
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 71, 23)
+                .setFluidRenderer(20_000, false, 16, 64)
+                .addIngredients(NeoForgeTypes.FLUID_STACK, ObjectLists.singleton(recipe.getResult().getResult()));
     }
 
     @Override
-    public void draw(final ModRecipe recipe, final MatrixStack matrix, final double mouseX, final double mouseY) {
+    public void draw(final ModRecipe recipe, final IRecipeSlotsView recipeSlotsView, final GuiGraphics gfx,
+                     final double mouseX, final double mouseY) {
 
-        this._powerBar.draw(matrix, this._powerBarArea.getX1(), this._powerBarArea.getY1());
+        this._powerBar.draw(gfx, this._powerBarArea.getX1(), this._powerBarArea.getY1());
 
         if (null != this._leftProgressBar) {
-            this._leftProgressBar.draw(matrix, 45, 47);
+            this._leftProgressBar.draw(gfx, 45, 47);
         }
 
         if (null != this._rightProgressBar) {
-            this._rightProgressBar.draw(matrix, 84+5, 42+5);
+            this._rightProgressBar.draw(gfx, 84+5, 42+5);
         }
     }
 
     @Override
-    public List<ITextComponent> getTooltipStrings(final ModRecipe recipe, final double mouseX, final double mouseY) {
-        return this._tooltips.entrySet().stream()
+    public void getTooltip(ITooltipBuilder builder, ModRecipe recipe, IRecipeSlotsView recipeSlotsView,
+                           double mouseX, double mouseY) {
+        builder.addAll(this._tooltips.entrySet().stream()
                 .filter(e -> e.getKey().contains(mouseX, mouseY))
                 .map(Map.Entry::getValue)
                 .findAny()
-                .orElse(ObjectLists.emptyList());
+                .orElse(ObjectLists.emptyList()));
     }
 
     //endregion
     //region internals
 
-    protected FluidizerRecipeCategory(final IFluidizerRecipe.Type recipeType, final String titleKey,
-                                      final IGuiHelper guiHelper, final Supplier<? extends ModBlock> iconSupplier) {
+    protected FluidizerRecipeCategory(final RecipeType<T> jeiRecipeType, final IFluidizerRecipe.Type recipeType,
+                                      final String titleKey, final IGuiHelper guiHelper,
+                                      final Supplier<? extends ModBlock> iconSupplier) {
 
-        super(recipeType.getRecipeId(), new TranslationTextComponent(titleKey),
-                iconSupplier.get().createItemStack(), guiHelper, background(recipeType, guiHelper));
+        super(jeiRecipeType, Component.translatable(titleKey),
+                new ItemStack(iconSupplier.get()), guiHelper, background(recipeType, guiHelper));
 
         this._tooltips = new Object2ObjectArrayMap<>(4);
 
@@ -267,7 +196,7 @@ public abstract class FluidizerRecipeCategory
 
         // progress bars
 
-        final ResourceLocation texture = ExtremeReactors.newID("textures/gui/jei/fluidizer.png");
+        final ResourceLocation texture = getBackgroundId();
         final IDrawableStatic leftBar = guiHelper.createDrawable(texture, 0, 176, 24, 16);
         final IDrawableStatic rightBar = guiHelper.createDrawable(texture, 0, 192, 24, 16);
 
@@ -290,11 +219,11 @@ public abstract class FluidizerRecipeCategory
         }
     }
 
-    protected void addTooltips(final int x, final int y, final ITextComponent... text) {
+    protected void addTooltips(final int x, final int y, final Component... text) {
         this.addTooltips(new Rectangle(x, y, 18, 18), text);
     }
 
-    protected void addTooltips(final Rectangle area, final ITextComponent... text) {
+    protected void addTooltips(final Rectangle area, final Component... text) {
         this._tooltips.put(area, new ObjectArrayList<>(text));
     }
 
@@ -302,17 +231,21 @@ public abstract class FluidizerRecipeCategory
 
         final int ordinal = recipeType.ordinal() - 1;
 
-        return guiHelper.drawableBuilder(ExtremeReactors.newID("textures/gui/jei/fluidizer.png"),
-                1 == ordinal ? 128 : 0, 2 == ordinal ? 88 : 0, 128, 88)
+        return guiHelper.drawableBuilder(getBackgroundId(),
+                        1 == ordinal ? 128 : 0, 2 == ordinal ? 88 : 0, 128, 88)
                 .addPadding(5, 5, 5, 5)
                 .build();
+    }
+
+    private static ResourceLocation getBackgroundId() {
+        return CommonLocations.TEXTURES_GUI_JEI.buildWithSuffix("fluidizer.png");
     }
 
     private final Rectangle _powerBarArea;
     private final ProgressBarDrawable _powerBar;
     private final IDrawableAnimated _leftProgressBar;
     private final IDrawableAnimated _rightProgressBar;
-    private final Map<Rectangle, List<ITextComponent>> _tooltips;
+    private final Map<Rectangle, List<Component>> _tooltips;
 
     //endregion
 }

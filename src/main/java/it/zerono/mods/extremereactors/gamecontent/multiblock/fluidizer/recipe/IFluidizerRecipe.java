@@ -19,15 +19,15 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.recipe;
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
-import it.zerono.mods.zerocore.lib.recipe.ISerializableRecipe;
 import it.zerono.mods.zerocore.lib.recipe.ModRecipe;
 import it.zerono.mods.zerocore.lib.recipe.holder.IHeldRecipe;
 import it.zerono.mods.zerocore.lib.recipe.result.FluidStackRecipeResult;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.fluids.FluidStack;
 
-public interface IFluidizerRecipe
-        extends ISerializableRecipe {
+public interface IFluidizerRecipe {
+
+    ResourceLocation ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix("fluidizer");
 
     interface Held<Recipe extends ModRecipe & IFluidizerRecipe> extends IHeldRecipe<Recipe> {
     }
@@ -57,7 +57,7 @@ public interface IFluidizerRecipe
         Type(final String name, final int ticks) {
 
             this._name = name;
-            this._id = ExtremeReactors.newID(name);
+            this._id = ExtremeReactors.ROOT_LOCATION.buildWithSuffix(name);
             this._ticks = ticks;
         }
 

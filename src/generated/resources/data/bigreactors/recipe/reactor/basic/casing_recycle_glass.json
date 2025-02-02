@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    {
+      "item": "bigreactors:basic_reactorglass"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:basic_reactorcasing"
+  }
+}

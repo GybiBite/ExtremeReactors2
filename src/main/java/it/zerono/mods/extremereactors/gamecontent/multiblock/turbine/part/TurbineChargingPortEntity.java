@@ -25,26 +25,27 @@ import it.zerono.mods.zerocore.base.multiblock.part.io.power.charging.IChargingP
 import it.zerono.mods.zerocore.base.multiblock.part.io.power.charging.IChargingPortHandler;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
 import it.zerono.mods.zerocore.lib.energy.EnergySystem;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 public class TurbineChargingPortEntity
         extends AbstractTurbinePowerTapEntity
-        implements IChargingPort, INamedContainerProvider {
+        implements IChargingPort, MenuProvider {
 
-    public TurbineChargingPortEntity(final EnergySystem system, final TileEntityType<?> entityType) {
+    public TurbineChargingPortEntity(final EnergySystem system, final BlockEntityType<?> entityType,
+                                     final BlockPos position, final BlockState blockState) {
 
-        super(system, entityType);
+        super(system, entityType, position, blockState);
         this.setHandler(IChargingPortHandler.create(system, this, 1, 1));
 
         this.setCommandDispatcher(TileCommandDispatcher.<TurbineChargingPortEntity>builder()
@@ -63,22 +64,22 @@ public class TurbineChargingPortEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
-        this.getChargingPortHandler().syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
+        this.getChargingPortHandler().syncDataFrom(data, registries, syncReason);
     }
 
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
-        this.getChargingPortHandler().syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
+        this.getChargingPortHandler().syncDataTo(data, registries, syncReason);
         return data;
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -89,12 +90,12 @@ public class TurbineChargingPortEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
         return new ChargingPortContainer<>(windowId, Content.ContainerTypes.TURBINE_CHARGINGPORT.get(), inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -110,7 +111,7 @@ public class TurbineChargingPortEntity
      * @param state
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return true;
     }
 

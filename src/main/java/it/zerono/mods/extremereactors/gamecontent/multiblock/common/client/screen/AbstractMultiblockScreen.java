@@ -19,7 +19,7 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen;
 
 import com.google.common.collect.ImmutableList;
-import it.zerono.mods.extremereactors.ExtremeReactors;
+import it.zerono.mods.extremereactors.CommonLocations;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part.AbstractReactorEntity;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.part.AbstractReprocessorEntity;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.AbstractTurbineEntity;
@@ -40,60 +40,60 @@ import it.zerono.mods.zerocore.lib.multiblock.IMultiblockController;
 import it.zerono.mods.zerocore.lib.multiblock.IMultiblockMachine;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.AbstractCuboidMultiblockController;
 import it.zerono.mods.zerocore.lib.multiblock.variant.IMultiblockVariant;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.NonNullSupplier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
-@OnlyIn(Dist.CLIENT)
 public abstract class AbstractMultiblockScreen<Controller extends AbstractCuboidMultiblockController<Controller> & IMultiblockMachine,
-                                                T extends AbstractMultiblockEntity<Controller> & INamedContainerProvider,
+                                                T extends AbstractMultiblockEntity<Controller> & MenuProvider,
                                                 C extends ModTileContainer<T>>
         extends ModTileContainerScreen<T, C> {
 
-    protected AbstractMultiblockScreen(final C container, final PlayerInventory inventory,
-                                       final PlayerInventoryUsage inventoryUsage, final ITextComponent title) {
+    protected AbstractMultiblockScreen(final C container, final Inventory inventory,
+                                       final PlayerInventoryUsage inventoryUsage, final Component title) {
         this(container, inventory, inventoryUsage, title, DEFAULT_GUI_WIDTH, DEFAULT_GUI_HEIGHT);
     }
 
-    protected AbstractMultiblockScreen(final C container, final PlayerInventory inventory,
-                                       final PlayerInventoryUsage inventoryUsage, final ITextComponent title,
-                                       final NonNullSupplier<SpriteTextureMap> mainTextureSupplier) {
+    protected AbstractMultiblockScreen(final C container, final Inventory inventory,
+                                       final PlayerInventoryUsage inventoryUsage, final Component title,
+                                       final Supplier<@NotNull SpriteTextureMap> mainTextureSupplier) {
         this(container, inventory, inventoryUsage, title, DEFAULT_GUI_WIDTH, DEFAULT_GUI_HEIGHT, mainTextureSupplier.get());
     }
 
-    protected AbstractMultiblockScreen(final C container, final PlayerInventory inventory,
-                                       final PlayerInventoryUsage inventoryUsage, final ITextComponent title,
+    protected AbstractMultiblockScreen(final C container, final Inventory inventory,
+                                       final PlayerInventoryUsage inventoryUsage, final Component title,
                                        final int guiWidth, final int guiHeight,
-                                       final NonNullSupplier<SpriteTextureMap> mainTextureSupplier) {
+                                       final Supplier<@NotNull SpriteTextureMap> mainTextureSupplier) {
         this(container, inventory, inventoryUsage, title, guiWidth, guiHeight, mainTextureSupplier.get());
     }
 
-    protected static NonNullSupplier<SpriteTextureMap> mainTextureFromVariant(final IMultiblockVariant variant) {
-        return () -> new SpriteTextureMap(ExtremeReactors.newID("textures/gui/multiblock/" + variant.getName() + "_background.png"), 256, 256);
+    protected static Supplier<@NotNull SpriteTextureMap> mainTextureFromVariant(final IMultiblockVariant variant) {
+        return () -> new SpriteTextureMap(CommonLocations.TEXTURES_GUI_MULTIBLOCK
+                .buildWithSuffix(variant.getName() + "_background.png"), 256, 256);
     }
 
-    protected static NonNullSupplier<SpriteTextureMap> halfTextureFromVariant(final IMultiblockVariant variant) {
-        return () -> new SpriteTextureMap(ExtremeReactors.newID("textures/gui/multiblock/" + variant.getName() + "_background_half.png"), 256, 98);
+    protected static Supplier<@NotNull SpriteTextureMap> halfTextureFromVariant(final IMultiblockVariant variant) {
+        return () -> new SpriteTextureMap(CommonLocations.TEXTURES_GUI_MULTIBLOCK
+                .buildWithPrefix(variant.getName() + "_background_half.png"), 256, 98);
     }
 
-    protected AbstractMultiblockScreen(final C container, final PlayerInventory inventory,
-                                       final PlayerInventoryUsage inventoryUsage, final ITextComponent title,
+    protected AbstractMultiblockScreen(final C container, final Inventory inventory,
+                                       final PlayerInventoryUsage inventoryUsage, final Component title,
                                        final int guiWidth, final int guiHeight) {
         this(container, inventory, inventoryUsage, title, guiWidth, guiHeight,
-                new SpriteTextureMap(ExtremeReactors.newID("textures/gui/multiblock/generic_background.png"), 256, 256));
+                new SpriteTextureMap(CommonLocations.TEXTURES_GUI_MULTIBLOCK
+                        .buildWithSuffix("generic_background.png"), 256, 256));
     }
 
-    protected AbstractMultiblockScreen(final C container, final PlayerInventory inventory,
-                                       final PlayerInventoryUsage inventoryUsage, final ITextComponent title,
+    protected AbstractMultiblockScreen(final C container, final Inventory inventory,
+                                       final PlayerInventoryUsage inventoryUsage, final Component title,
                                        final int guiWidth, final int guiHeight, final SpriteTextureMap mainTexture) {
 
         super(container, inventory, title, guiWidth, guiHeight);
@@ -169,11 +169,11 @@ public abstract class AbstractMultiblockScreen<Controller extends AbstractCuboid
         this._contentPanel.setLayoutEngine(engine);
     }
 
-    protected void setIndicatorToolTip(final boolean active, final ITextComponent... lines) {
+    protected void setIndicatorToolTip(final boolean active, final Component... lines) {
         this.setIndicatorToolTip(active, ImmutableList.copyOf(lines), Collections.emptyList());
     }
 
-    protected void setIndicatorToolTip(final boolean active, final List<ITextComponent> lines, final List<Object> objects) {
+    protected void setIndicatorToolTip(final boolean active, final List<Component> lines, final List<Object> objects) {
 
         if (active) {
             this._indicatorOn.setTooltips(lines, objects);
@@ -188,7 +188,7 @@ public abstract class AbstractMultiblockScreen<Controller extends AbstractCuboid
 
     protected void setButtonSpritesAndOverlayForState(final AbstractButtonControl button,
                                                       final ButtonState standardState,
-                                                      final NonNullSupplier<ISprite> standardSprite) {
+                                                      final Supplier<@NotNull ISprite> standardSprite) {
         this.setButtonSpritesAndOverlayForState(button, standardState,standardSprite.get());
     }
 
@@ -292,7 +292,7 @@ public abstract class AbstractMultiblockScreen<Controller extends AbstractCuboid
         titlePanel.setLayoutEngineHint(FixedLayoutEngine.hint(0, 0, guiWidth, TITLE_PANEL_HEIGHT));
         titlePanel.setLayoutEngine(new FixedLayoutEngine().setZeroMargins());
 
-        final Label title = new Label(this, "title", this.getTitle()./*getFormattedText*/getString());
+        final Label title = new Label(this, "title", this.getTitle().getString());
 
         title.setPadding(2);
         title.setColor(this.getTheme().GUI_TITLE);
@@ -342,12 +342,12 @@ public abstract class AbstractMultiblockScreen<Controller extends AbstractCuboid
         return this._mainTextMap.sprite().from(0, 202).ofSize(18, 18).build();
     }
 
-    protected static final ITextComponent INDICATOR_ACTIVE_REACTOR = new TranslationTextComponent("gui.bigreactors.reactor.active");
-    protected static final ITextComponent INDICATOR_INACTIVE_REACTOR = new TranslationTextComponent("gui.bigreactors.reactor.inactive");
-    protected static final ITextComponent INDICATOR_ACTIVE_TURBINE = new TranslationTextComponent("gui.bigreactors.turbine.active");
-    protected static final ITextComponent INDICATOR_INACTIVE_TURBINE = new TranslationTextComponent("gui.bigreactors.turbine.inactive");
-    protected static final ITextComponent INDICATOR_ACTIVE_REPROCESSOR = new TranslationTextComponent("gui.bigreactors.reprocessor.active");
-    protected static final ITextComponent INDICATOR_INACTIVE_REPROCESSOR = new TranslationTextComponent("gui.bigreactors.reprocessor.inactive");
+    protected static final Component INDICATOR_ACTIVE_REACTOR = Component.translatable("gui.bigreactors.reactor.active");
+    protected static final Component INDICATOR_INACTIVE_REACTOR = Component.translatable("gui.bigreactors.reactor.inactive");
+    protected static final Component INDICATOR_ACTIVE_TURBINE = Component.translatable("gui.bigreactors.turbine.active");
+    protected static final Component INDICATOR_INACTIVE_TURBINE = Component.translatable("gui.bigreactors.turbine.inactive");
+    protected static final Component INDICATOR_ACTIVE_REPROCESSOR = Component.translatable("gui.bigreactors.reprocessor.active");
+    protected static final Component INDICATOR_INACTIVE_REPROCESSOR = Component.translatable("gui.bigreactors.reprocessor.inactive");
 
     private static final int DEFAULT_GUI_WIDTH = 224;
     private static final int DEFAULT_GUI_HEIGHT = 166;

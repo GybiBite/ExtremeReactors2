@@ -20,21 +20,22 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part;
 
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.FluidizerPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.MultiblockFluidizer;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.network.UpdateFluidizerFluidStatus;
 import it.zerono.mods.zerocore.base.multiblock.part.AbstractMultiblockEntity;
+import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartTypeProvider;
-import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelData;
 import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelDataCache;
-import it.zerono.mods.zerocore.lib.energy.IWideEnergyStorage2;
-import it.zerono.mods.zerocore.lib.energy.NullEnergyHandlers;
+import it.zerono.mods.zerocore.lib.data.stack.IStackHolder;
 import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.client.model.data.EmptyModelData;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import java.util.Objects;
 
@@ -42,8 +43,8 @@ public class AbstractFluidizerEntity
         extends AbstractMultiblockEntity<MultiblockFluidizer>
         implements IMultiblockPartTypeProvider<MultiblockFluidizer, FluidizerPartType> {
 
-    public AbstractFluidizerEntity(final TileEntityType<?> type) {
-        super(type);
+    public AbstractFluidizerEntity(final BlockEntityType<?> type, final BlockPos position, final BlockState blockState) {
+        super(type, position, blockState);
     }
 
     protected boolean isFluidizerActive() {
@@ -59,31 +60,41 @@ public class AbstractFluidizerEntity
                 .ifPresent(c -> c.setMachineActive(active));
     }
 
-    protected void onIngredientsChanged() {
-        this.executeOnController(MultiblockFluidizer::onIngredientsChanged);
+    protected void onIngredientsChanged(IStackHolder.ChangeType changeType) {
+        this.executeOnController(controller -> controller.onIngredientsChanged(changeType));
     }
 
     public IFluidHandler getFluidOutput() {
         return this.evalOnController(MultiblockFluidizer::getFluidHandler, FluidHelper.EMPTY_FLUID_HANDLER);
     }
 
-    public IWideEnergyStorage2 getEnergyStorage() {
-        return this.evalOnController(MultiblockFluidizer::getEnergyStorage, NullEnergyHandlers.WIDE_STORAGE);
-    }
-
-    public ITextComponent getPartDisplayName() {
-        return new TranslationTextComponent(this.getPartType().map(FluidizerPartType::getTranslationKey).orElse("unknown"));
+    public Component getPartDisplayName() {
+        return Component.translatable(this.getPartType().map(FluidizerPartType::getTranslationKey).orElse("unknown"));
     }
 
     //region client render support
 
     @Override
-    protected IModelData getUpdatedModelData() {
-        return this.getPartType().map(this::getUpdatedModelData).orElse(EmptyModelData.INSTANCE);
+    protected ModelData getUpdatedModelData() {
+        return this.getPartType().map(this::getUpdatedModelData).orElse(ModelData.EMPTY);
     }
 
     protected int getUpdatedModelVariantIndex() {
         return 0;
+    }
+
+    public void onUpdateFluidStatus(UpdateFluidizerFluidStatus message) {
+        this.executeOnController(c -> c.onUpdateFluidStatus(message));
+    }
+
+    //endregion
+    //region IDebuggable
+
+    @Override
+    public void getDebugMessages(LogicalSide side, IDebugMessages messages) {
+
+        super.getDebugMessages(side, messages);
+        messages.addUnlocalized("Model Variant Index: %d", this.getUpdatedModelVariantIndex());
     }
 
     //endregion
@@ -121,7 +132,7 @@ public class AbstractFluidizerEntity
      */
     @Override
     public MultiblockFluidizer createController() {
-        return new MultiblockFluidizer(Objects.requireNonNull(this.getLevel(), "Trying to create a Controller from a Part without a World"));
+        return new MultiblockFluidizer(Objects.requireNonNull(this.getLevel(), "Trying to create a Controller from a Part without a Level"));
     }
 
     /**
@@ -154,9 +165,8 @@ public class AbstractFluidizerEntity
     //endregion
     //region client render support
 
-    protected IModelData getUpdatedModelData(final FluidizerPartType partType) {
-        return s_modelDataCaches.computeIfAbsent(partType.ordinal(), this.getUpdatedModelVariantIndex(), this.getOutwardFacings(),
-                () -> new CuboidPartVariantsModelData(partType.ordinal(), this.getUpdatedModelVariantIndex(), this.getOutwardFacings()));
+    protected ModelData getUpdatedModelData(final FluidizerPartType partType) {
+        return s_modelDataCaches.computeIfAbsent(partType.ordinal(), this.getUpdatedModelVariantIndex(), this.getOutwardFacings());
     }
 
     private static final CuboidPartVariantsModelDataCache s_modelDataCaches = new CuboidPartVariantsModelDataCache();

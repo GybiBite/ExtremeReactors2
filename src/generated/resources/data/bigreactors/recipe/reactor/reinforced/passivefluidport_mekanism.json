@@ -1,0 +1,33 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": {
+      "item": "minecraft:lava_bucket"
+    },
+    "C": {
+      "item": "bigreactors:reinforced_reactorcasing"
+    },
+    "S": {
+      "item": "minecraft:water_bucket"
+    },
+    "X": {
+      "item": "minecraft:emerald_block"
+    }
+  },
+  "pattern": [
+    "CSC",
+    "BXB",
+    "CSC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reinforced_reactorfluidport_mekanism_passive"
+  }
+}

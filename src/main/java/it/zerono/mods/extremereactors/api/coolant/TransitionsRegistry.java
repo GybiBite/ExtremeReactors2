@@ -192,14 +192,14 @@ public final class TransitionsRegistry {
 
             // remove from list
 
-            Arrays.stream(wrapper.FluidTransitions.Remove)
+            wrapper.FluidTransitions.removals()
                     .filter(name -> !Strings.isNullOrEmpty(name))
                     .forEach(TransitionsRegistry::remove);
         }
 
         // add new
 
-        Arrays.stream(wrapper.FluidTransitions.Add)
+        wrapper.FluidTransitions.additions()
                 .filter(Objects::nonNull)
                 .forEach(mapping -> register(mapping.Source, mapping.SourceQuantity, mapping.Product, mapping.ProductQuantity));
     }
@@ -217,8 +217,8 @@ public final class TransitionsRegistry {
     private TransitionsRegistry() {
     }
 
-    private static final Map<Coolant, IMapping<Coolant, Vapor>> s_vaporizations = new Object2ObjectArrayMap<>(2);
-    private static final Map<Vapor, IMapping<Vapor, Coolant>> s_condensations = new Object2ObjectArrayMap<>(2);
+    private static final Map<Coolant, IMapping<Coolant, Vapor>> s_vaporizations = new Object2ObjectArrayMap<>(4);
+    private static final Map<Vapor, IMapping<Vapor, Coolant>> s_condensations = new Object2ObjectArrayMap<>(4);
 
     private static final Marker MARKER = MarkerManager.getMarker("API/TransitionsRegistry").addParents(ExtremeReactorsAPI.MARKER);
     private static final Marker WRAPPER = MarkerManager.getMarker("ModPack API Wrapper").addParents(MARKER);

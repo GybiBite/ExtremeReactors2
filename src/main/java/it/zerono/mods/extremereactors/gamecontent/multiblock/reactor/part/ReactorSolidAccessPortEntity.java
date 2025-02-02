@@ -39,43 +39,41 @@ import it.zerono.mods.zerocore.lib.data.IoDirection;
 import it.zerono.mods.zerocore.lib.item.ItemHelper;
 import it.zerono.mods.zerocore.lib.item.inventory.handler.ItemHandlerModifiableForwarder;
 import it.zerono.mods.zerocore.lib.item.inventory.handler.TileEntityItemStackHandler;
-import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class ReactorSolidAccessPortEntity
         extends AbstractReactorEntity
-        implements IFuelSource<ItemStack>, IIoEntity, INeighborChangeListener, INamedContainerProvider {
+        implements IFuelSource<ItemStack>, IIoEntity, INeighborChangeListener, MenuProvider {
 
-    public ReactorSolidAccessPortEntity() {
+    public ReactorSolidAccessPortEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REACTOR_SOLID_ACCESSPORT.get());
+        super(Content.TileEntityTypes.REACTOR_SOLID_ACCESSPORT.get(), position, blockState);
         this.setIoDirection(IoDirection.Input);
         this._fuelInventory = new TileEntityItemStackHandler(this, 1);
         this._wasteInventory = new TileEntityItemStackHandler(this, 1);
-        this._fuelCapability = LazyOptional.of(this::createFuelCapability);
-        this._wasteCapability = LazyOptional.of(this::createWasteCapability);
+        this._fuelCapability = this.createFuelCapability();
+        this._wasteCapability = this.createWasteCapability();
 
         this.setCommandDispatcher(TileCommandDispatcher.<ReactorSolidAccessPortEntity>builder()
                 .addServerHandler(CommonConstants.COMMAND_SET_INPUT, tile -> tile.setIoDirection(IoDirection.Input))
@@ -89,57 +87,15 @@ public class ReactorSolidAccessPortEntity
         return type.isFuel() ? this._fuelInventory : this._wasteInventory;
     }
 
-    /* *
-     * Return the Reactant corresponding to the item in the input slot
-     *//*
-    public Optional<Reactant> getInputReactant() {
-        return this.getStackMapping(ReactantType.Fuel).map(SourceProductMapping::getProduct);
-    }*/
+    @Nullable
+    public IItemHandler getItemHandler() {
 
-    /* *
-     * Returns the potential amount of reactant which can be produced from this port.
-     *//*
-    public int getInputReactantAmount() {
-
-        final ItemStack input = this.getStack(ReactantType.Fuel);
-
-        if (ItemHelper.stackIsNotEmpty(input)) {
-            return this.getStackMapping(ReactantType.Fuel).map(m -> m.getProductAmount(ItemHelper.stackGetSize(input))).orElse(0);
+        if (!this.isRemoved()) {
+            return this.getIoDirection().isInput() ? this._fuelCapability : this._wasteCapability;
         }
 
-        return 0;
-    }*/
-
-
-
-    /* *
-     * Consume the source items (from the input slot) of a Reactant.
-     * Returns the amount of Reactant that was created.
-     *
-     * @param reactantDesired The amount of reactant desired, in reactant units (mB)
-     * @return The amount of reactant actually produced, in reactant units (mB)
-     *//*
-    public int consumeReactant(int reactantDesired) {
-
-        // TODO consume partial amount of source fuel (say, a block) and put left over back in the inventory (say, ingots)
-
-        final ItemStack input = this.getStack(ReactantType.Fuel);
-        final SourceProductMapping<Tag<Item>, Reactant> mapping = this.getStackMapping(ReactantType.Fuel).orElse(null);
-
-        if (ItemHelper.stackIsNotEmpty(input) && null != mapping) {
-
-            final int amountToConsume = Math.min(ItemHelper.stackGetSize(input), mapping.getSourceAmount(reactantDesired));
-
-            if (amountToConsume > 0) {
-
-                this._fuelInventory.extractItem(0, amountToConsume, false);
-                return mapping.getProductAmount(amountToConsume);
-            }
-        }
-
-        return 0;
+        return null;
     }
-*/
 
     /**
      * Called when stuff has been placed in the access port
@@ -155,9 +111,9 @@ public class ReactorSolidAccessPortEntity
     @Override
     protected int getUpdatedModelVariantIndex() {
 
-        final int connectedOffset = this.isMachineAssembled() && this.getNeighborCapability().isPresent() ? 1 : 0;
+        final int connectedOffset = this.isMachineAssembled() && null != this.getNeighborCapability() ? 1 : 0;
 
-        return this.getIoDirection().isInput() ? 2 + connectedOffset : 0 + connectedOffset;
+        return this.getIoDirection().isInput() ? 2 + connectedOffset : connectedOffset;
     }
 
     //endregion
@@ -219,7 +175,7 @@ public class ReactorSolidAccessPortEntity
         if (!outputStack.isEmpty()) {
 
             // Find matching mapping
-            final IMapping<ResourceLocation, Reactant> mapping = ReactantMappingsRegistry.getFromSolid(outputStack).orElse(null);
+            final IMapping<TagKey<Item>, Reactant> mapping = ReactantMappingsRegistry.getFromSolid(outputStack).orElse(null);
 
             if (null == mapping || !reactant.equals(mapping.getProduct())) {
                 // The items in the output slot are not compatible with the Reactant
@@ -253,14 +209,14 @@ public class ReactorSolidAccessPortEntity
         We have no items in the output slot. We need to figure out candidate mappings.
         Below here, we're using the reactant >> source mappings. This means that source == reactant, and product == item.
         */
-        IMapping<Reactant, ResourceLocation> bestMapping = null;
-        final List<IMapping<Reactant, ResourceLocation>> mappings = ReactantMappingsRegistry.getToSolid(reactant).orElse(null);
+        IMapping<Reactant, TagKey<Item>> bestMapping = null;
+        final List<IMapping<Reactant, TagKey<Item>>> mappings = ReactantMappingsRegistry.getToSolid(reactant).orElse(null);
 
         if (null != mappings) {
 
             int bestReactantAmount = 0;
 
-            for (final IMapping<Reactant, ResourceLocation> mapping: mappings) {
+            for (final IMapping<Reactant, TagKey<Item>> mapping: mappings) {
 
                 // How much product can we produce?
                 final int potentialProducts = mapping.getProductAmount(amount);
@@ -302,7 +258,7 @@ public class ReactorSolidAccessPortEntity
             return 0;
         }
 
-        ItemHelper.stackSetSize(newItem, itemsToProduce);
+        newItem.setCount(itemsToProduce);
         this._wasteInventory.setStackInSlot(0, newItem);
         this.onItemsReceived();
 
@@ -310,7 +266,7 @@ public class ReactorSolidAccessPortEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -321,12 +277,12 @@ public class ReactorSolidAccessPortEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
         return new ReactorSolidAccessPortContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -362,7 +318,7 @@ public class ReactorSolidAccessPortEntity
     }
 
     @Override
-    public void onBlockReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onBlockReplaced(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
 
         ItemHelper.inventoryDropItems(this.getItemStackHandler(ReactantType.Fuel), world, pos);
         ItemHelper.inventoryDropItems(this.getItemStackHandler(ReactantType.Waste), world, pos);
@@ -398,33 +354,33 @@ public class ReactorSolidAccessPortEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
         this.setIoDirection(IoDirection.read(data, "iodir", IoDirection.Input));
 
         if (syncReason.isFullSync()) {
 
             if (data.contains("invin")) {
-                this._fuelInventory.deserializeNBT(data.getCompound("invin"));
+                this._fuelInventory.deserializeNBT(registries, data.getCompound("invin"));
             }
 
             if (data.contains("invout")) {
-                this._wasteInventory.deserializeNBT(data.getCompound("invout"));
+                this._wasteInventory.deserializeNBT(registries, data.getCompound("invout"));
             }
         }
     }
 
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
         IoDirection.write(data, "iodir", this.getIoDirection());
 
         if (syncReason.isFullSync()) {
 
-            data.put("invin", this._fuelInventory.serializeNBT());
-            data.put("invout", this._wasteInventory.serializeNBT());
+            data.put("invin", this._fuelInventory.serializeNBT(registries));
+            data.put("invout", this._wasteInventory.serializeNBT(registries));
         }
 
         return data;
@@ -454,7 +410,7 @@ public class ReactorSolidAccessPortEntity
      * @param state
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return true;
     }
 
@@ -469,35 +425,6 @@ public class ReactorSolidAccessPortEntity
     }
 
     //endregion
-    //region TileEntity
-
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction side) {
-
-        if (!this.isRemoved() && ITEM_HANDLER_CAPABILITY == capability) {
-
-            if (this.getIoDirection().isInput()) {
-                return this._fuelCapability.cast();
-            } else {
-                return this._wasteCapability.cast();
-            }
-        }
-
-        return super.getCapability(capability, side);
-    }
-
-    /**
-     * invalidates a tile entity
-     */
-    @Override
-    public void setRemoved() {
-
-        super.setRemoved();
-        this._fuelCapability.invalidate();
-        this._wasteCapability.invalidate();
-    }
-
-    //endregion
     //region internals
 
     private ItemStack getStack(ReactantType type) {
@@ -507,54 +434,34 @@ public class ReactorSolidAccessPortEntity
     private void setStack(ReactantType type, ItemStack stack) {
         this.getItemStackHandler(type).setStackInSlot(0, stack);
     }
-/*
-    private Optional<SourceProductMapping<Tag<Item>, Reactant>> getStackMapping(ReactantType type) {
-
-        final ItemStack input = this.getStack(ReactantType.Fuel);
-
-        if (ItemHelper.stackIsNotEmpty(input)) {
-            return ReactantMappingsRegistry.getFromSolid(input);
-        }
-
-        return Optional.empty();
-    }*/
 
     private void distributeItems() {
-/*
-        final World world = this.getWorld();
-        final Direction myDirection = this.getOutwardDirection().orElse(null);
 
-        if (null == world || this.calledByLogicalClient() || null == myDirection || this.getIoDirection().isInput()) {
-            return;
-        }
-
-        WorldHelper.getTile(world, this.getWorldPosition().offset(myDirection))
-                .map(te -> te.getCapability(ITEM_HANDLER_CAPABILITY, myDirection.getOpposite()))
-                .ifPresent(cap -> cap.ifPresent(itemHandler -> {
-
-                    this.setStack(ReactantType.Waste, ItemHandlerHelper.insertItem(itemHandler, this.getStack(ReactantType.Waste), false));
-                    this.markChunkDirty();
-                }));
-*/
         if (this.getIoDirection().isInput()) {
             return;
         }
 
-        this.callOnLogicalServer(() -> this.getNeighborCapability().ifPresent(itemHandler -> {
+        this.callOnLogicalServer(() -> {
 
-                this.setStack(ReactantType.Waste, ItemHandlerHelper.insertItem(itemHandler, this.getStack(ReactantType.Waste), false));
+            final IItemHandler handler = this.getNeighborCapability();
+
+            if (null != handler) {
+
+                this.setStack(ReactantType.Waste, ItemHandlerHelper.insertItem(handler, this.getStack(ReactantType.Waste), false));
                 this.markChunkDirty();
-        }));
+            }
+        });
     }
 
-    private LazyOptional<IItemHandler> getNeighborCapability() {
-        return CodeHelper.optionalFlatMap(this.getPartWorld(), this.getOutwardDirection(),
-                (world, direction) -> WorldHelper.getTile(world, this.getWorldPosition().relative(direction))
-                        .map(te -> te.getCapability(ITEM_HANDLER_CAPABILITY, direction.getOpposite())))
-                .orElse(LazyOptional.empty());
+    @Nullable
+    private IItemHandler getNeighborCapability() {
+        return CodeHelper.optionalMap(this.getPartWorld(), this.getOutwardDirection(),
+                        (level, direction) -> level.getCapability(Capabilities.ItemHandler.BLOCK,
+                                this.getWorldPosition().relative(direction), direction.getOpposite()))
+                        .orElse(null);
     }
 
-    @Nonnull
+    @NotNull
     private IItemHandlerModifiable createFuelCapability() {
         return new ItemHandlerModifiableForwarder(this.getItemStackHandler(ReactantType.Fuel)) {
 
@@ -570,38 +477,34 @@ public class ReactorSolidAccessPortEntity
         };
     }
 
-    @Nonnull
+    @NotNull
     private IItemHandlerModifiable createWasteCapability() {
         return new ItemHandlerModifiableForwarder(this.getItemStackHandler(ReactantType.Waste)) {
 
             @Override
-            public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+            public ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
                 return stack;
             }
 
             @Override
-            public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
+            public boolean isItemValid(int slot, @NotNull ItemStack stack) {
                 return false;
             }
         };
     }
 
-    private void handleCommandEjectFuel(CompoundNBT options) {
+    private void handleCommandEjectFuel(CompoundTag options) {
         this.getMultiblockController().ifPresent(c -> c.ejectFuel(options.contains("void") && options.getBoolean("void")));
     }
 
-    private void handleCommandEjectWaste(CompoundNBT options) {
+    private void handleCommandEjectWaste(CompoundTag options) {
         this.getMultiblockController().ifPresent(c -> c.ejectWaste(options.contains("void") && options.getBoolean("void")));
     }
 
-    @SuppressWarnings("FieldMayBeFinal")
-    @CapabilityInject(IItemHandler.class)
-    private static Capability<IItemHandler> ITEM_HANDLER_CAPABILITY = null;
-
     private final TileEntityItemStackHandler _fuelInventory;
     private final TileEntityItemStackHandler _wasteInventory;
-    private final LazyOptional<IItemHandlerModifiable> _fuelCapability;
-    private final LazyOptional<IItemHandlerModifiable> _wasteCapability;
+    private final IItemHandlerModifiable _fuelCapability;
+    private final IItemHandlerModifiable _wasteCapability;
     private IoDirection _direction;
 
     //endregion

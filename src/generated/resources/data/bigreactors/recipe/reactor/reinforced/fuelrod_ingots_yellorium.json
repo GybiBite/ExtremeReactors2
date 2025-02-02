@@ -1,0 +1,36 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:not",
+      "value": {
+        "type": "neoforge:tag_empty",
+        "tag": "c:ingots/steel"
+      }
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "G": {
+      "tag": "c:ingots/graphite"
+    },
+    "L": {
+      "tag": "c:glass_blocks"
+    },
+    "M": {
+      "tag": "c:ingots/steel"
+    },
+    "Y": {
+      "tag": "c:ingots/yellorium"
+    }
+  },
+  "pattern": [
+    "MGM",
+    "LYL",
+    "MGM"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reinforced_reactorfuelrod"
+  }
+}

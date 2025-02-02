@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": {
+      "item": "bigreactors:fluidizercasing"
+    },
+    "G": {
+      "tag": "c:glass_blocks"
+    }
+  },
+  "pattern": [
+    "GCG"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:fluidizerglass"
+  }
+}

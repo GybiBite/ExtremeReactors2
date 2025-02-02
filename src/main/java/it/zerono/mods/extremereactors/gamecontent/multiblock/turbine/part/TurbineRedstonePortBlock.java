@@ -19,28 +19,27 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part;
 
 import it.zerono.mods.extremereactors.config.Config;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.TurbinePartType;
 import it.zerono.mods.zerocore.base.multiblock.part.GenericDeviceBlock;
 import it.zerono.mods.zerocore.lib.block.INeighborChangeListener;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.AbstractCuboidMultiblockPart;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.particles.RedstoneParticleData;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
-import java.util.Random;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class TurbineRedstonePortBlock
-        extends GenericDeviceBlock<MultiblockTurbine, TurbinePartType>
+        extends GenericDeviceBlock<MultiblockTurbine, ITurbinePartType>
         implements INeighborChangeListener.Notifier {
 
-    public TurbineRedstonePortBlock(final MultiblockPartProperties<TurbinePartType> properties) {
+    public TurbineRedstonePortBlock(final MultiblockPartProperties<ITurbinePartType> properties) {
         super(properties);
     }
 
@@ -55,12 +54,12 @@ public class TurbineRedstonePortBlock
     }
 
     @Override
-    public int getDirectSignal(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
+    public int getDirectSignal(BlockState blockState, BlockGetter blockAccess, BlockPos pos, Direction side) {
         return this.getSignal(blockState, blockAccess, pos, side);
     }
 
     @Override
-    public int getSignal(BlockState blockState, IBlockReader blockAccess, BlockPos pos, Direction side) {
+    public int getSignal(BlockState blockState, BlockGetter blockAccess, BlockPos pos, Direction side) {
         return WorldHelper.getTile(blockAccess, pos)
                 .filter(te -> te instanceof TurbineRedstonePortEntity)
                 .map(te -> (TurbineRedstonePortEntity)te)
@@ -70,7 +69,7 @@ public class TurbineRedstonePortBlock
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos pos, Random random) {
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
 
         if (Config.CLIENT.disableTurbineParticles.get()) {
             return;
@@ -86,7 +85,7 @@ public class TurbineRedstonePortBlock
                 .flatMap(AbstractCuboidMultiblockPart::getOutwardDirection)
                 .ifPresent(direction -> {
 
-                    WorldHelper.spawnVanillaParticles(world, RedstoneParticleData.REDSTONE, 1, 1,
+                    WorldHelper.spawnVanillaParticles(world, DustParticleOptions.REDSTONE, 1, 1,
                             pos.getX(), pos.getY(), pos.getZ(), 0, 1, 0);
                 });
     }

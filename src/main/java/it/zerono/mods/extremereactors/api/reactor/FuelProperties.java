@@ -16,7 +16,15 @@ package it.zerono.mods.extremereactors.api.reactor;
  *
  */
 
-import net.minecraft.util.math.MathHelper;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import it.zerono.mods.zerocore.lib.data.ModCodecs;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.Mth;
+
+import java.util.Objects;
 
 /**
  * Describe the properties of a Fuel {@link Reactant}
@@ -26,6 +34,23 @@ public class FuelProperties {
 
     public static final FuelProperties DEFAULT = new FuelProperties(1.5f, 0.5f, 1.0f, 0.01f, 0.0007f);
     public static final FuelProperties INVALID = new FuelProperties(1.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+
+    public static final ModCodecs<FuelProperties, ByteBuf> CODECS = new ModCodecs<>(
+            RecordCodecBuilder.create(instance -> instance.group(
+                            Codec.FLOAT.fieldOf("moderation").forGetter(FuelProperties::getModerationFactor),
+                            Codec.FLOAT.fieldOf("absorption").forGetter(FuelProperties::getAbsorptionCoefficient),
+                            Codec.FLOAT.fieldOf("hardness").forGetter(FuelProperties::getHardnessDivisor),
+                            Codec.FLOAT.fieldOf("fissionevents").forGetter(FuelProperties::getFissionEventsPerFuelUnit),
+                            Codec.FLOAT.fieldOf("fuelunits").forGetter(FuelProperties::getFuelUnitsPerFissionEvent))
+                    .apply(instance, FuelProperties::new)),
+            StreamCodec.composite(
+                    ByteBufCodecs.FLOAT, FuelProperties::getModerationFactor,
+                    ByteBufCodecs.FLOAT, FuelProperties::getAbsorptionCoefficient,
+                    ByteBufCodecs.FLOAT, FuelProperties::getHardnessDivisor,
+                    ByteBufCodecs.FLOAT, FuelProperties::getFissionEventsPerFuelUnit,
+                    ByteBufCodecs.FLOAT, FuelProperties::getFuelUnitsPerFissionEvent,
+                    FuelProperties::new)
+    );
 
     /**
      * Construct a new FuelProperties
@@ -60,7 +85,7 @@ public class FuelProperties {
     }
 
     public void setAbsorptionCoefficient(float value) {
-        this._fuelAbsorptionCoefficient = MathHelper.clamp(value, 0.0f, 1.0f);
+        this._fuelAbsorptionCoefficient = Mth.clamp(value, 0.0f, 1.0f);
     }
 
     public float getHardnessDivisor() {
@@ -87,13 +112,42 @@ public class FuelProperties {
         this._fuelUnitsPerFissionEvent = Math.max(0.0f, value);
     }
 
+    //region Object
+
+    @Override
+    public boolean equals(Object other) {
+
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof FuelProperties)) {
+            return false;
+        }
+
+        final FuelProperties properties = (FuelProperties) other;
+
+        return 0 == Float.compare(this._fuelModerationFactor, properties._fuelModerationFactor) &&
+                0 == Float.compare(this._fuelAbsorptionCoefficient, properties._fuelAbsorptionCoefficient) &&
+                0 == Float.compare(this._fuelHardnessDivisor, properties._fuelHardnessDivisor) &&
+                0 == Float.compare(this._fissionEventsPerFuelUnit, properties._fissionEventsPerFuelUnit) &&
+                0 == Float.compare(this._fuelUnitsPerFissionEvent, properties._fuelUnitsPerFissionEvent);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this._fuelModerationFactor, this._fuelAbsorptionCoefficient, this._fuelHardnessDivisor,
+                this._fissionEventsPerFuelUnit, this._fuelUnitsPerFissionEvent);
+    }
+
+    //endregion
     //region internals
 
     private float _fuelModerationFactor;
     private float _fuelAbsorptionCoefficient;
     private float _fuelHardnessDivisor;
-    private float _fissionEventsPerFuelUnit; //FISSION_EVENTS_PER_FUEL_UNIT 0.01f
-    private float _fuelUnitsPerFissionEvent; //FUEL_PER_RADIATION_UNIT 0.0007f
+    private float _fissionEventsPerFuelUnit;
+    private float _fuelUnitsPerFissionEvent;
 
     //endregion
 }

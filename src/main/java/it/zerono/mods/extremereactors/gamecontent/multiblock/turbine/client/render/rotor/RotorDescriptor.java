@@ -19,35 +19,36 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.render.rotor;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.model.TurbineRotorModelBuilder;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.RotorShaftState;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.variant.TurbineVariant;
 import it.zerono.mods.zerocore.lib.client.render.ModRenderHelper;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.vector.Matrix3f;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.math.vector.Quaternion;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraftforge.common.util.NonNullConsumer;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.Direction;
+import org.jetbrains.annotations.NotNull;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class RotorDescriptor
-    implements NonNullConsumer<MatrixStack> {
+    implements Consumer<@NotNull PoseStack> {
 
     final Direction RotorDirection;
     final int Length;
     final ShaftSection[] Sections;
-    final Matrix4f Translation;
+    final Vector3fc Translation;
 
-    final Supplier<IBakedModel> ShaftModel;
-    final Supplier<IBakedModel> BladeModel;
+    final Supplier<BakedModel> ShaftModel;
+    final Supplier<BakedModel> BladeModel;
 
-    final BiConsumer<MatrixStack, Float> InitMatrix;
+    final BiConsumer<PoseStack, Float> InitMatrix;
 
     public static Builder builder(final TurbineVariant variant, final Direction rotorDirection, final int length) {
         return new Builder(variant, rotorDirection, length);
@@ -59,7 +60,7 @@ public class RotorDescriptor
             return new RotorDescriptor(this._variant, this._rotorDirection, this._length, this._shaft);
         }
 
-        public Builder section(final RotorShaftState state, final NonNullConsumer<ShaftSection.Builder> consumer) {
+        public Builder section(final RotorShaftState state, final Consumer<ShaftSection.@NotNull Builder> consumer) {
 
             final ShaftSection.Builder builder = ShaftSection.builder(state);
 
@@ -86,11 +87,11 @@ public class RotorDescriptor
         //endregion
     }
 
-    //region NonNullConsumer<MatrixStack>
+    //region NonNullConsumer<PoseStack>
 
     @Override
-    public void accept(final MatrixStack stack) {
-        stack.last().pose().multiply(this.Translation);
+    public void accept(final PoseStack stack) {
+        stack.last().pose().translate(this.Translation);
     }
 
     //endregion
@@ -102,7 +103,7 @@ public class RotorDescriptor
         this.RotorDirection = rotorDirection;
         this.Length = length;
         this.Sections = sections.toArray(new ShaftSection[0]);
-        this.Translation = CachedTranslations.getFor(rotorDirection);
+        this.Translation = rotorDirection.step();
 
         switch (variant) {
 
@@ -123,39 +124,32 @@ public class RotorDescriptor
         // initial matrix setup for angle and block center
 
         this._initRotorDirectionVector = this.RotorDirection.step();
-
-        final float rotationOffsetX = 0 == this._initRotorDirectionVector.x() ? 0.5f : 0.0f;
-        final float rotationOffsetY = 0 == this._initRotorDirectionVector.y() ? 0.5f : 0.0f;
-        final float rotationOffsetZ = 0 == this._initRotorDirectionVector.z() ? 0.5f : 0.0f;
-
-        this._initTranslate1 = Matrix4f.createTranslateMatrix(rotationOffsetX, rotationOffsetY, rotationOffsetZ);
-        this._initTranslate2 = Matrix4f.createTranslateMatrix(-rotationOffsetX, -rotationOffsetY, -rotationOffsetZ);
+        this._initRotationOffsetX = 0 == this._initRotorDirectionVector.x() ? 0.5f : 0.0f;
+        this._initRotationOffsetY = 0 == this._initRotorDirectionVector.y() ? 0.5f : 0.0f;
+        this._initRotationOffsetZ = 0 == this._initRotorDirectionVector.z() ? 0.5f : 0.0f;
 
         this.InitMatrix = this::initMatrix;
     }
 
-    private void initMatrix(final MatrixStack stack, final float rotorAngle) {
+    private void initMatrix(final PoseStack stack, final float rotorAngle) {
 
-        final MatrixStack.Entry entry = stack.last();
+        final PoseStack.Pose entry = stack.last();
+        final Quaternionf rotation = Axis.of(this._initRotorDirectionVector).rotationDegrees(rotorAngle);
 
-        final Matrix4f matrix = entry.pose();
-        final Matrix3f normal = entry.normal();
-        final Quaternion rotation = this._initRotorDirectionVector.rotationDegrees(rotorAngle);
-
-        // ie: stack.translate(rotationOffsetX, rotationOffsetY, rotationOffsetZ);
-        matrix.multiply(this._initTranslate1);
-
-        // ie: stack.rotate(rotorDirectionVector.rotationDegrees(angle));
-        matrix.multiply(rotation);
-        normal.mul(rotation);
-
-        // ie: stack.translate(-rotationOffsetX, -rotationOffsetY, -rotationOffsetZ);
-        matrix.multiply(this._initTranslate2);
+        // ie:
+        // - stack.translate(rotationOffsetX, rotationOffsetY, rotationOffsetZ);
+        // - stack.rotate(rotorDirectionVector.rotationDegrees(angle));
+        // - stack.translate(-rotationOffsetX, -rotationOffsetY, -rotationOffsetZ);
+        entry.pose().translate(this._initRotationOffsetX, this._initRotationOffsetY, this._initRotationOffsetZ)
+                .rotate(rotation)
+                .translate(-this._initRotationOffsetX, -this._initRotationOffsetY, -this._initRotationOffsetZ);
+        entry.normal().rotate(rotation);
     }
 
     private final Vector3f _initRotorDirectionVector;
-    private final Matrix4f _initTranslate1;
-    private final Matrix4f _initTranslate2;
+    private final float _initRotationOffsetX;
+    private final float _initRotationOffsetY;
+    private final float _initRotationOffsetZ;
 
     //endregion
 }

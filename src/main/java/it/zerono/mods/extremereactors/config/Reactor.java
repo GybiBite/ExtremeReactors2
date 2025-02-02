@@ -18,16 +18,15 @@
 
 package it.zerono.mods.extremereactors.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class Reactor {
 
-    public final ForgeConfigSpec.IntValue maxReactorHeight;
-    public final ForgeConfigSpec.IntValue maxReactorSize;
-    public final ForgeConfigSpec.DoubleValue reactorPowerProductionMultiplier;
-    public final ForgeConfigSpec.IntValue fuelRodLightValue;
+    public final ModConfigSpec.IntValue maxReactorHeight;
+    public final ModConfigSpec.IntValue maxReactorSize;
+    public final ModConfigSpec.DoubleValue reactorPowerProductionMultiplier;
 
-    Reactor(final ForgeConfigSpec.Builder builder) {
+    Reactor(final ModConfigSpec.Builder builder) {
 
         builder.comment("Define how Reactors works").push("reactor");
 
@@ -50,12 +49,7 @@ public class Reactor {
                 .comment("A multiplier for balancing Reactor power production. Stacks with powerProductionMultiplier.")
                 .translation("config.bigreactors.reactor.reactorpowerproductionmultiplier")
                 .worldRestart()
-                .defineInRange("reactorPowerProductionMultiplier", 1.0, 0.5, 100.0);
-
-        fuelRodLightValue = builder
-                .comment("How much light (0-15) does a Fuel Rod emits.")
-                .translation("config.bigreactors.client.fuelrodlightvalue")
-                .defineInRange("fuelRodLightValue", 15, 0, 15);
+                .defineInRange("reactorPowerProductionMultiplier", 1.0, 0.005, 100.0);
 
         builder.pop();
     }

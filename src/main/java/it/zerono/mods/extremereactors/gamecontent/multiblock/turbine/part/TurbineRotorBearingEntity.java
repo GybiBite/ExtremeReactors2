@@ -30,25 +30,26 @@ import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class TurbineRotorBearingEntity
         extends AbstractTurbineEntity {
 
-    public TurbineRotorBearingEntity() {
+    public TurbineRotorBearingEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.TURBINE_ROTORBEARING.get());
+        super(Content.TileEntityTypes.TURBINE_ROTORBEARING.get(), position, blockState);
         this._rotorAngle = 0.0f;
         this._rotorDescriptor = null;
-        this._renderBoundingBox = INFINITE_EXTENT_AABB;
+        this._renderBoundingBox = AABB.INFINITE;
     }
 
     public Direction getRotorDirection() {
@@ -86,6 +87,10 @@ public class TurbineRotorBearingEntity
     @OnlyIn(Dist.CLIENT)
     public boolean isTurbineInteriorInvisible() {
         return this.evalOnController(AbstractMultiblockController::isInteriorInvisible, false);
+    }
+
+    public AABB getRenderBoundingBox() {
+        return this._renderBoundingBox;
     }
 
     //region AbstractReactorEntity
@@ -127,14 +132,6 @@ public class TurbineRotorBearingEntity
     }
 
     //endregion
-    //region TileEntity
-
-    @Override
-    public AxisAlignedBB getRenderBoundingBox() {
-        return this._renderBoundingBox;
-    }
-
-    //endregion
     //region internals
     //region build rotor
 
@@ -155,7 +152,8 @@ public class TurbineRotorBearingEntity
 
         // build our new render bounding box
 
-        this._renderBoundingBox = new AxisAlignedBB(turbineMin, turbineMax);
+        this._renderBoundingBox = new AABB(turbineMin.getX(), turbineMin.getY(), turbineMin.getZ(),
+                turbineMax.getX(), turbineMax.getY(), turbineMax.getZ());
 
         // build the rotor
 
@@ -179,7 +177,7 @@ public class TurbineRotorBearingEntity
         }
 
         final List<Direction> bladesDirections = CodeHelper.perpendicularDirections(rotorDirection);
-        final World world = this.getPartWorldOrFail();
+        final Level world = this.getPartWorldOrFail();
 
         final RotorDescriptor.Builder rotorBuilder = RotorDescriptor.builder(TurbineVariant.from(turbine.getVariant()),
                 rotorDirection, rotorLength);
@@ -212,7 +210,7 @@ public class TurbineRotorBearingEntity
         return rotorBuilder.build();
     }
 
-    private void buildShaftSection(final World world, final BlockPos shaftPosition, List<Direction> bladesDirections,
+    private void buildShaftSection(final Level world, final BlockPos shaftPosition, List<Direction> bladesDirections,
                                    final ShaftSection.Builder sectionBuilder) {
 
         for (final Direction direction : bladesDirections) {
@@ -263,7 +261,7 @@ public class TurbineRotorBearingEntity
     //endregion
 
     private float _rotorAngle;
-    private AxisAlignedBB _renderBoundingBox;
+    private AABB _renderBoundingBox;
     private RotorDescriptor _rotorDescriptor;
 
     //endregion

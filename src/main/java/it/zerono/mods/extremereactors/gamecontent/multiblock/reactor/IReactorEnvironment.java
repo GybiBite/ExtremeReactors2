@@ -19,9 +19,7 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor;
 
 import it.zerono.mods.extremereactors.api.reactor.radiation.IRadiationModerator;
-import net.minecraft.util.math.BlockPos;
-
-import java.util.Optional;
+import net.minecraft.core.BlockPos;
 
 public interface IReactorEnvironment {
 
@@ -46,7 +44,7 @@ public interface IReactorEnvironment {
      */
     IRadiationModerator getModerator(BlockPos position);
 
-    int getPartsCount(ReactorPartType type);
+    int getPartsCount(IReactorPartType type);
 
 
 

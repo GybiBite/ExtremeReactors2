@@ -24,6 +24,8 @@ import it.zerono.mods.zerocore.lib.data.nbt.INestedSyncableEntity;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Optional;
 
@@ -31,8 +33,8 @@ public class FluidizerCasingEntity
         extends AbstractFluidizerEntity
         implements INestedSyncableEntity {
 
-    public FluidizerCasingEntity() {
-        super(Content.TileEntityTypes.FLUIDIZER_CASING.get());
+    public FluidizerCasingEntity(final BlockPos position, final BlockState blockState) {
+        super(Content.TileEntityTypes.FLUIDIZER_CASING.get(), position, blockState);
     }
 
     //region AbstractFluidizerEntity

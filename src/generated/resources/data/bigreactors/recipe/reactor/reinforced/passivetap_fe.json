@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": {
+      "item": "minecraft:redstone_block"
+    },
+    "C": {
+      "item": "bigreactors:reinforced_reactorcasing"
+    },
+    "S": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "CSC",
+    "SBS",
+    "CSC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reinforced_reactorpowertapfe_passive"
+  }
+}

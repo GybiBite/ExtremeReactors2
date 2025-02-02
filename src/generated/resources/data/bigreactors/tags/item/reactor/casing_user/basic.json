@@ -1,0 +1,11 @@
+{
+  "values": [
+    "bigreactors:basic_reactorcontroller",
+    "bigreactors:basic_reactorcontrolrod",
+    "bigreactors:basic_reactorsolidaccessport",
+    "bigreactors:basic_reactorpowertapfe_active",
+    "bigreactors:basic_reactorpowertapfe_passive",
+    "bigreactors:basic_reactorredstoneport",
+    "bigreactors:basic_reactorchargingportfe"
+  ]
+}

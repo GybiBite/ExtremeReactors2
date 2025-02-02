@@ -20,7 +20,9 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part;
 
 import it.zerono.mods.extremereactors.gamecontent.CommonConstants;
 import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.common.container.FluidPortContainer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.part.fluidport.FluidPortType;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactorPartType;
 import it.zerono.mods.zerocore.base.multiblock.part.io.fluid.IFluidPort;
@@ -29,33 +31,29 @@ import it.zerono.mods.zerocore.lib.block.INeighborChangeListener;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
 import it.zerono.mods.zerocore.lib.data.IoDirection;
 import it.zerono.mods.zerocore.lib.data.IoMode;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.templates.EmptyFluidHandler;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.templates.EmptyFluidHandler;
+import org.jetbrains.annotations.Nullable;
 
 public class ReactorFluidPortEntity
         extends AbstractReactorEntity
-        implements IFluidPort, INeighborChangeListener, INamedContainerProvider {
+        implements IFluidPort, INeighborChangeListener, MenuProvider {
 
-    public ReactorFluidPortEntity(final FluidPortType type, final IoMode mode, final TileEntityType<?> entityType) {
+    public ReactorFluidPortEntity(final FluidPortType type, final IoMode mode, final BlockEntityType<?> entityType,
+                                  final BlockPos position, final BlockState blockState) {
 
-        super(entityType);
+        super(entityType, position, blockState);
         this._handler = FluidPortType.create(type, mode, this);
         this.setIoDirection(IoDirection.Input);
 
@@ -85,10 +83,7 @@ public class ReactorFluidPortEntity
     @Override
     public void onNeighborBlockChanged(final BlockState state, final BlockPos neighborPosition, final boolean isMoving) {
 
-        if (this.isConnected()) {
-            this.getFluidPortHandler().checkConnections(this.getLevel(), this.getWorldPosition());
-        }
-
+        this.getFluidPortHandler().onPortChanged();
         this.requestClientRenderUpdate();
     }
 
@@ -101,10 +96,7 @@ public class ReactorFluidPortEntity
     @Override
     public void onNeighborTileChanged(final BlockState state, final BlockPos neighborPosition) {
 
-        if (this.isConnected()) {
-            this.getFluidPortHandler().checkConnections(this.getLevel(), this.getWorldPosition());
-        }
-
+        this.getFluidPortHandler().onPortChanged();
         this.requestClientRenderUpdate();
     }
 
@@ -141,22 +133,22 @@ public class ReactorFluidPortEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(final CompoundNBT data, final SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
         this.setIoDirection(IoDirection.read(data, "iodir", IoDirection.Input));
     }
 
     @Override
-    public CompoundNBT syncDataTo(final CompoundNBT data, final SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
         IoDirection.write(data, "iodir", this.getIoDirection());
         return data;
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -167,12 +159,12 @@ public class ReactorFluidPortEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
-        return ModTileContainer.empty(Content.ContainerTypes.REACTOR_FLUIDPORT.get(), windowId, this);
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
+        return new FluidPortContainer<>(windowId, Content.ContainerTypes.REACTOR_FLUIDPORT.get(), inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -199,9 +191,9 @@ public class ReactorFluidPortEntity
      * @param state
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
 
-        final ReactorPartType partType = this.getPartTypeOrDefault(ReactorPartType.Casing);
+        final IReactorPartType partType = this.getPartTypeOrDefault(ReactorPartType.Casing);
 
         return (ReactorPartType.ActiveFluidPortForge == partType || ReactorPartType.PassiveFluidPortForge == partType) &&
                 this.isMachineAssembled();
@@ -245,28 +237,6 @@ public class ReactorFluidPortEntity
 
         super.onDetached(oldController);
         this.getFluidPortHandler().update(this::getUpdatedHandler);
-    }
-
-    //endregion
-    //region TileEntity
-
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction side) {
-
-        final LazyOptional<T> cap = this.getFluidPortHandler().getCapability(capability, side);
-
-        return null != cap ? cap : super.getCapability(capability, side);
-    }
-
-    /**
-     * invalidates a tile entity
-     */
-    @Override
-    public void setRemoved() {
-
-        super.setRemoved();
-        this.getFluidPortHandler().invalidate();
     }
 
     //endregion

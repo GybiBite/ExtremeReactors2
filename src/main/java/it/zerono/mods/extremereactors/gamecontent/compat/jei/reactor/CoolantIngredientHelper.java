@@ -19,12 +19,21 @@
 package it.zerono.mods.extremereactors.gamecontent.compat.jei.reactor;
 
 import it.unimi.dsi.fastutil.objects.ObjectLists;
+import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.api.coolant.Coolant;
+import it.zerono.mods.extremereactors.gamecontent.compat.jei.ExtremeReactorsJeiPlugin;
+import mezz.jei.api.ingredients.IIngredientType;
+import net.minecraft.resources.ResourceLocation;
 
 public class CoolantIngredientHelper
         extends AbstractIngredientHelper<Coolant> {
 
     //region AbstractIngredientHelper<Coolant>
+
+    @Override
+    public IIngredientType<Coolant> getIngredientType() {
+        return ExtremeReactorsJeiPlugin.COOLANT_INGREDIENT_TYPE;
+    }
 
     @Override
     public Iterable<Integer> getColors(final Coolant coolant) {
@@ -34,6 +43,11 @@ public class CoolantIngredientHelper
     @Override
     public Coolant copyIngredient(final Coolant coolant) {
         return coolant.copy();
+    }
+
+    @Override
+    public ResourceLocation getResourceLocation(final Coolant coolant) {
+        return ExtremeReactors.ROOT_LOCATION.buildWithSuffix("coolant_" + coolant.getName());
     }
 
     //endregion

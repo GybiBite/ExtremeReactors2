@@ -16,54 +16,58 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.network;
  *
  */
 
+import io.netty.buffer.ByteBuf;
+import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part.AbstractReactorEntity;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
-import it.zerono.mods.zerocore.lib.network.AbstractModTileMessage;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.fml.LogicalSide;
+import it.zerono.mods.zerocore.lib.network.AbstractBlockEntityPlayPacket;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class UpdateClientsFuelRodsLayout
-    extends AbstractModTileMessage {
+    extends AbstractBlockEntityPlayPacket<UpdateClientsFuelRodsLayout> {
+
+    public static final Type<UpdateClientsFuelRodsLayout> TYPE = createType(ExtremeReactors.ROOT_LOCATION, "update_client_fuelrods");
+
+    public static final StreamCodec<ByteBuf, UpdateClientsFuelRodsLayout> STREAM_CODEC = createStreamCodec(
+            ByteBufCodecs.COMPOUND_TAG, packet -> packet._fuelContainerData,
+            UpdateClientsFuelRodsLayout::new);
 
     public UpdateClientsFuelRodsLayout(final AbstractReactorEntity referencePart, final ISyncableEntity fuelContainer) {
 
-        super(referencePart.getWorldPosition());
-        this._fuelContainerData = fuelContainer.syncDataTo(new CompoundNBT(), ISyncableEntity.SyncReason.NetworkUpdate);
+        super(TYPE, referencePart);
+        this._fuelContainerData = fuelContainer.syncDataTo(new CompoundTag(),
+                referencePart.getPartWorldOrFail().registryAccess(), ISyncableEntity.SyncReason.NetworkUpdate);
     }
 
-    public UpdateClientsFuelRodsLayout(final PacketBuffer buffer) {
+    public UpdateClientsFuelRodsLayout(GlobalPos position, CompoundTag data) {
 
-        super(buffer);
-        this._fuelContainerData = buffer.readNbt();
+        super(TYPE, position);
+        this._fuelContainerData = data;
     }
 
-    public CompoundNBT getFuelContainerData() {
+    public CompoundTag getFuelContainerData() {
         return this._fuelContainerData;
     }
 
     //region AbstractModTileMessage
 
     @Override
-    public void encodeTo(final PacketBuffer buffer) {
+    protected void processBlockEntity(PacketFlow flow, BlockEntity blockEntity) {
 
-        super.encodeTo(buffer);
-        buffer.writeNbt(this._fuelContainerData);
-    }
-
-    @Override
-    protected void processTileEntityMessage(final LogicalSide sourceSide, final TileEntity tileEntity) {
-
-        if (LogicalSide.SERVER == sourceSide && tileEntity instanceof AbstractReactorEntity) {
-            ((AbstractReactorEntity)tileEntity).onUpdateClientsFuelRodsLayout(this);
+        if (PacketFlow.CLIENTBOUND == flow && blockEntity instanceof AbstractReactorEntity re) {
+            re.onUpdateClientsFuelRodsLayout(this);
         }
     }
 
     //endregion
     //region internals
 
-    private final CompoundNBT _fuelContainerData;
+    private final CompoundTag _fuelContainerData;
 
     //endregion
 }

@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:dispenser"
+    },
+    "2": {
+      "tag": "c:storage_blocks/lapis"
+    },
+    "3": {
+      "tag": "c:chests"
+    },
+    "C": {
+      "item": "bigreactors:fluidizercasing"
+    }
+  },
+  "pattern": [
+    "C2C",
+    "313",
+    "C2C"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:fluidizeroutputport"
+  }
+}

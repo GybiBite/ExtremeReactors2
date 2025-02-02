@@ -18,27 +18,36 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.common;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Maps;
 import it.zerono.mods.extremereactors.api.IMapping;
 import it.zerono.mods.extremereactors.api.coolant.Coolant;
 import it.zerono.mods.extremereactors.api.coolant.FluidMappingsRegistry;
 import it.zerono.mods.extremereactors.api.coolant.TransitionsRegistry;
 import it.zerono.mods.extremereactors.api.coolant.Vapor;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.variant.IMultiblockGeneratorVariant;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.common.variant.IMultiblockFluidGeneratorVariant;
 import it.zerono.mods.zerocore.lib.TestResult;
 import it.zerono.mods.zerocore.lib.data.IoDirection;
 import it.zerono.mods.zerocore.lib.data.stack.IndexedStackContainer;
 import it.zerono.mods.zerocore.lib.data.stack.OperationMode;
 import it.zerono.mods.zerocore.lib.data.stack.StackAdapters;
 import it.zerono.mods.zerocore.lib.fluid.handler.IndexedFluidHandlerForwarder;
+import it.zerono.mods.zerocore.lib.item.inventory.container.ModContainer;
+import it.zerono.mods.zerocore.lib.item.inventory.container.data.FluidStackData;
 import it.zerono.mods.zerocore.lib.tag.TagsHelper;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.*;
 
 public class FluidContainer
@@ -184,7 +193,7 @@ public class FluidContainer
     @Override
     public boolean isContentValidForIndex(final FluidType index, final Fluid content) {
 
-        // check if the the current content mach the provided one
+        // check if the current content mach the provided one
 
         final TestResult result = TestResult.from(this.getContent(index)
                 .map(fluid -> fluid.isSame(content)));
@@ -220,6 +229,18 @@ public class FluidContainer
         return (null == this._cachedVapor || Vapor.EMPTY == this._cachedVapor) ? defaultValue : mapper.apply(this._cachedVapor);
     }
 
+    @Override
+    public FluidStackData getCoolantStackData(int sampleFrequency, ModContainer container) {
+        return FluidStackData.sampled(sampleFrequency, container, () -> this.getStack(FluidType.Liquid),
+                stack -> this.setStack(FluidType.Liquid, stack));
+    }
+
+    @Override
+    public FluidStackData getVaporStackData(int sampleFrequency, ModContainer container) {
+        return FluidStackData.sampled(sampleFrequency, container, () -> this.getStack(FluidType.Gas),
+                stack -> this.setStack(FluidType.Gas, stack));
+    }
+
     //region Reactor UPDATE logic
 
     @Override
@@ -241,7 +262,7 @@ public class FluidContainer
      * @return amount of energy remaining after absorption
      */
     @Override
-    public double onAbsorbHeat(final double energyAbsorbed, final IMultiblockGeneratorVariant variant) {
+    public double onAbsorbHeat(final double energyAbsorbed, final IMultiblockFluidGeneratorVariant variant) {
 
         if (energyAbsorbed <= 0 || this.getLiquidAmount() <= 0) {
             return energyAbsorbed;
@@ -252,7 +273,7 @@ public class FluidContainer
     }
 
     @Override
-    public int onCondensation(final int vaporUsed, final boolean ventAllCoolant, final IMultiblockGeneratorVariant variant) {
+    public int onCondensation(final int vaporUsed, final boolean ventAllCoolant, final IMultiblockFluidGeneratorVariant variant) {
 
         if (vaporUsed <= 0 || this.getGasAmount() <= 0) {
             return vaporUsed;
@@ -271,15 +292,15 @@ public class FluidContainer
     //region ISyncableEntity
 
     /**
-     * Sync the entity data from the given {@link CompoundNBT}
+     * Sync the entity data from the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to read from
+     * @param data       the {@link CompoundTag} to read from
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
 
         if (syncReason.isFullSync()) {
 
@@ -301,7 +322,7 @@ public class FluidContainer
      * @param vaporization the vaporization mapping for the Coolant
      * @return FE remaining after absorption.
      */
-    private double absorbHeat(final double energyAbsorbed, final IMultiblockGeneratorVariant variant,
+    private double absorbHeat(final double energyAbsorbed, final IMultiblockFluidGeneratorVariant variant,
                               final int liquidAmount, final IMapping<Coolant, Vapor> vaporization) {
 
         // do we have some gas around already?
@@ -322,17 +343,13 @@ public class FluidContainer
         } else {
 
             // no, vaporize using the first fluid associated to the Vapor as the target fluid
-            return FluidMappingsRegistry.getFluidFrom(vaporization.getProduct())
-                    .filter(list -> !list.isEmpty())
-                    .map(list -> list.get(0))
-                    .map(IMapping::getProduct)
-                    .map(TagsHelper::getTagFirstElement)
+            return getVaporizationResult(vaporization.getProduct())
                     .map(gas -> this.vaporize(energyAbsorbed, variant, vaporization, liquidAmount, gas))
                     .orElse(energyAbsorbed);
         }
     }
 
-    private double vaporize(final double energyAbsorbed, final IMultiblockGeneratorVariant variant,
+    private double vaporize(final double energyAbsorbed, final IMultiblockFluidGeneratorVariant variant,
                             final IMapping<Coolant, Vapor> vaporization, final int availableLiquidAmount,
                             final Fluid targetGas) {
 
@@ -389,11 +406,7 @@ public class FluidContainer
         } else {
 
             // no, condensate using the first fluid associated to the Coolant as the target fluid
-            return FluidMappingsRegistry.getFluidFrom(condensation.getProduct())
-                    .filter(list -> !list.isEmpty())
-                    .map(list -> list.get(0))
-                    .map(IMapping::getProduct)
-                    .map(TagsHelper::getTagFirstElement)
+            return getCondensationResult(condensation.getProduct())
                     .map(liquid -> this.condensate(vaporUsed, condensation, liquid))
                     .orElse(vaporUsed);
         }
@@ -526,7 +539,51 @@ public class FluidContainer
         }
     }
 
+    private static <T> Optional<Fluid> getTransitionResult(final T transition, final Cache<T, Fluid> cache,
+                                                           final Function<@NotNull T, @NotNull Optional<List<IMapping<T, TagKey<Fluid>>>>> mappingGetter) {
+
+        final Fluid result = cache.getIfPresent(transition);
+
+        if (null == result) {
+
+            final Optional<Fluid> fluid = mappingGetter.apply(transition)
+                    .map(list -> list.get(0))
+                    .map(IMapping::getProduct)
+                    .flatMap(TagsHelper.FLUIDS::getFirstObject);
+
+            if (fluid.isPresent()) {
+
+                cache.put(transition, fluid.get());
+                return fluid;
+            }
+        }
+
+        return Optional.ofNullable(result);
+    }
+
+    private static Optional<Fluid> getVaporizationResult(final Vapor vapor) {
+        return getTransitionResult(vapor, s_vaporizationCache, FluidMappingsRegistry::getFluidFrom);
+    }
+
+    private static Optional<Fluid> getCondensationResult(final Coolant coolant) {
+        return getTransitionResult(coolant, s_condensationCache, FluidMappingsRegistry::getFluidFrom);
+    }
+
     //endregion
+
+    private static final Cache<Vapor, Fluid> s_vaporizationCache = CacheBuilder.newBuilder()
+            .initialCapacity(4)
+            .concurrencyLevel(2)
+            .maximumSize(64)
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .build();
+
+    private static final Cache<Coolant, Fluid> s_condensationCache = CacheBuilder.newBuilder()
+            .initialCapacity(4)
+            .concurrencyLevel(2)
+            .maximumSize(64)
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .build();
 
     private final IFluidContainerAccess _accessGovernor;
     private Map<FluidType, IndexedFluidHandlerForwarder<FluidType>> _wrappers;

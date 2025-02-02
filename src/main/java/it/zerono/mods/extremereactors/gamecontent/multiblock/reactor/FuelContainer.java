@@ -20,12 +20,15 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor;
 
 import it.zerono.mods.extremereactors.Log;
 import it.zerono.mods.extremereactors.api.reactor.*;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.container.data.ReactantStackData;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.data.nbt.IMergeableEntity;
 import it.zerono.mods.zerocore.lib.data.stack.IndexedStackContainer;
 import it.zerono.mods.zerocore.lib.data.stack.OperationMode;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.fml.LogicalSide;
+import it.zerono.mods.zerocore.lib.item.inventory.container.ModContainer;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.neoforged.fml.LogicalSide;
 
 import java.util.Optional;
 
@@ -68,6 +71,16 @@ public class FuelContainer
 
     public int getWasteAmount() {
         return this.getContentAmount(ReactantType.Waste);
+    }
+
+    @Override
+    public ReactantStackData getFuelStackData(int sampleFrequency, ModContainer container) {
+        return ReactantStackData.sampled(sampleFrequency, container, () -> this.getStack(ReactantType.Fuel));
+    }
+
+    @Override
+    public ReactantStackData getWasteStackData(int sampleFrequency, ModContainer container) {
+        return ReactantStackData.sampled(sampleFrequency, container, () -> this.getStack(ReactantType.Waste));
     }
 
     /**
@@ -211,9 +224,9 @@ public class FuelContainer
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
 
         if (data.contains("radiationFuelUsage")) {
             this._radiationFuelUsage = data.getFloat("radiationFuelUsage");
@@ -221,16 +234,16 @@ public class FuelContainer
     }
 
     /**
-     * Sync the entity data to the given {@link CompoundNBT}
+     * Sync the entity data to the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to write to
+     * @param data       the {@link CompoundTag} to write to
      * @param syncReason the reason why the synchronization is necessary
-     * @return the {@link CompoundNBT} the data was written to (usually {@code data})
+     * @return the {@link CompoundTag} the data was written to (usually {@code data})
      */
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
         data.putFloat("radiationFuelUsage", this._radiationFuelUsage);
         return data;
     }

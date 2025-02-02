@@ -19,6 +19,6 @@
 @MethodsReturnNonnullByDefault
 package it.zerono.mods.extremereactors.gamecontent.compat.jei.reactor;
 
-import mcp.MethodsReturnNonnullByDefault;
+import net.minecraft.MethodsReturnNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;

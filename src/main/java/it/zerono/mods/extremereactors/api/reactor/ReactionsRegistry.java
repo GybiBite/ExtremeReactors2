@@ -30,7 +30,10 @@ import it.zerono.mods.extremereactors.api.internal.modpack.wrapper.ApiWrapper;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Keep track of all the Reactions that could happen inside a Reactor Fuel Rod
@@ -121,14 +124,14 @@ public final class ReactionsRegistry {
 
             // remove from list
 
-            Arrays.stream(wrapper.ReactorReactantReaction.Remove)
+            wrapper.ReactorReactantReaction.removals()
                     .filter(name -> !Strings.isNullOrEmpty(name))
                     .forEach(ReactionsRegistry::remove);
         }
 
         // add new values
 
-        Arrays.stream(wrapper.ReactorReactantReaction.Add)
+        wrapper.ReactorReactantReaction.additions()
                 .filter(Objects::nonNull)
                 .forEach((it.zerono.mods.extremereactors.api.internal.modpack.wrapper.Reaction w) ->
                         register(w.SourceReactant, w.ProductReactant, w.Reactivity, w.FissionRate));
@@ -138,6 +141,16 @@ public final class ReactionsRegistry {
         return ObjectLists.unmodifiable(new ObjectArrayList<>(s_reactions.values()));
     }
 
+    //region /er support
+
+    public static List<String> getReactionsNames() {
+        return s_reactions.keySet().stream()
+                .map(Reactant::getName)
+                .sorted(String::compareTo)
+                .toList();
+    }
+
+    //endregion
     //region internals
 
     private ReactionsRegistry() {

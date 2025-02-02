@@ -1,6 +1,6 @@
 /*
  *
- * TurbinePartType.java
+ * ITurbinePartType.java
  *
  * This file is part of Extreme Reactors 2 by ZeroNoRyouki, a Minecraft mod.
  *
@@ -24,44 +24,41 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.common.part.PowerTa
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineRedstonePortBlock;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineRotorBearingBlock;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineRotorComponentBlock;
+import it.zerono.mods.zerocore.base.BaseHelper;
 import it.zerono.mods.zerocore.base.multiblock.part.GenericDeviceBlock;
 import it.zerono.mods.zerocore.base.multiblock.part.GlassBlock;
 import it.zerono.mods.zerocore.base.multiblock.part.io.IOPortBlock;
-import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartType2;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartBlock;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartTypeProperties;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraftforge.common.util.NonNullFunction;
-import net.minecraftforge.common.util.NonNullSupplier;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public enum TurbinePartType
-        implements IMultiblockPartType2<MultiblockTurbine, TurbinePartType> {
+        implements ITurbinePartType {
 
     Casing(() -> Content.TileEntityTypes.TURBINE_CASING::get,
-            MultiblockPartBlock::new,
-            "part.bigreactors.turbine.casing"),
+            MultiblockPartBlock::new),
 
     Glass(() -> Content.TileEntityTypes.TURBINE_GLASS::get,
-            GlassBlock::new, "part.bigreactors.turbine.glass",
-            GlassBlock::addGlassProperties),
+            GlassBlock::new, GlassBlock::addGlassProperties),
 
     Controller(() -> Content.TileEntityTypes.TURBINE_CONTROLLER::get,
             GenericDeviceBlock::new, "part.bigreactors.turbine.controller"),
 
     RotorBearing(() -> Content.TileEntityTypes.TURBINE_ROTORBEARING::get,
-            TurbineRotorBearingBlock::new, "part.bigreactors.turbine.rotorbearing",
-            bp -> bp.lightLevel(state -> 15)),
+            TurbineRotorBearingBlock::new, bp -> bp.lightLevel(state -> 15)),
 
     RotorShaft(() -> Content.TileEntityTypes.TURBINE_ROTORSHAFT::get,
-            TurbineRotorComponentBlock::shaft, "part.bigreactors.turbine.rotorshaft",
-            TurbinePartType::rotorBlock),
+            TurbineRotorComponentBlock::shaft, TurbinePartType::rotorBlock),
 
     RotorBlade(() -> Content.TileEntityTypes.TURBINE_ROTORBLADE::get,
-            TurbineRotorComponentBlock::blade, "part.bigreactors.turbine.rotorblade",
-            TurbinePartType::rotorBlock),
+            TurbineRotorComponentBlock::blade, TurbinePartType::rotorBlock),
 
     ActiveFluidPortForge(() -> Content.TileEntityTypes.TURBINE_FLUIDPORT_FORGE_ACTIVE::get,
             IOPortBlock::new, "part.bigreactors.turbine.fluidport_forge_active"),
@@ -76,16 +73,16 @@ public enum TurbinePartType
 //            PassiveFluidPortBlock::new, "part.bigreactors.turbine.fluidport_mekanism_passive"),
 
     CreativeSteamGenerator(() -> Content.TileEntityTypes.TURBINE_CREATIVE_STEAM_GENERATOR::get,
-            GenericDeviceBlock::new, "part.bigreactors.turbine.creativesteamgenerator"),
+            GenericDeviceBlock::new),
 
     ActivePowerTapFE(() -> Content.TileEntityTypes.TURBINE_POWERTAP_FE_ACTIVE::get,
-            PowerTapBlock::new, "part.bigreactors.turbine.powertap_fe_active"),
+            PowerTapBlock::new),
 
     PassivePowerTapFE(() -> Content.TileEntityTypes.TURBINE_POWERTAP_FE_PASSIVE::get,
-            PowerTapBlock::new, "part.bigreactors.turbine.powertap_fe_passive"),
+            PowerTapBlock::new),
 
     ComputerPort(() -> Content.TileEntityTypes.TURBINE_COMPUTERPORT::get,
-            GenericDeviceBlock::new, "part.bigreactors.turbine.computerport"),
+            GenericDeviceBlock::new),
 
     ChargingPortFE(() -> Content.TileEntityTypes.TURBINE_CHARGINGPORT_FE::get,
             GenericDeviceBlock::new, "part.bigreactors.turbine.chargingport_fe"),
@@ -94,25 +91,49 @@ public enum TurbinePartType
             TurbineRedstonePortBlock::new, "part.bigreactors.turbine.redstoneport"),
     ;
 
-    TurbinePartType(final NonNullSupplier<NonNullSupplier<TileEntityType<?>>> tileTypeSupplier,
-                    final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<TurbinePartType>,
-                            MultiblockPartBlock<MultiblockTurbine, TurbinePartType>> blockFactory,
+    TurbinePartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            @NotNull MultiblockPartBlock<MultiblockTurbine, ITurbinePartType>> blockFactory) {
+        this(tileTypeSupplier, blockFactory, BaseHelper.EMPTY_TRANSLATION_KEY, bp -> bp);
+    }
+
+    TurbinePartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            @NotNull MultiblockPartBlock<MultiblockTurbine, ITurbinePartType>> blockFactory,
                     final String translationKey) {
         this(tileTypeSupplier, blockFactory, translationKey, bp -> bp);
     }
 
-    TurbinePartType(final NonNullSupplier<NonNullSupplier<TileEntityType<?>>> tileTypeSupplier,
-                    final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<TurbinePartType>,
-                            MultiblockPartBlock<MultiblockTurbine, TurbinePartType>> blockFactory,
+    TurbinePartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            @NotNull MultiblockPartBlock<MultiblockTurbine, ITurbinePartType>> blockFactory,
+                    final Function<Block.@NotNull Properties, Block.@NotNull Properties> blockPropertiesFixer) {
+        this(tileTypeSupplier, blockFactory, BaseHelper.EMPTY_TRANSLATION_KEY, blockPropertiesFixer, ep -> ep);
+    }
+
+    TurbinePartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            @NotNull MultiblockPartBlock<MultiblockTurbine, ITurbinePartType>> blockFactory,
                     final String translationKey,
-                    final NonNullFunction<Block.Properties, Block.Properties> blockPropertiesFixer) {
-        this._properties = new MultiblockPartTypeProperties<>(tileTypeSupplier, blockFactory, translationKey, blockPropertiesFixer);
+                    final Function<Block.@NotNull Properties, Block.@NotNull Properties> blockPropertiesFixer) {
+        this(tileTypeSupplier, blockFactory, translationKey, blockPropertiesFixer, ep -> ep);
+    }
+
+    TurbinePartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            @NotNull MultiblockPartBlock<MultiblockTurbine, ITurbinePartType>> blockFactory,
+                    final String translationKey,
+                    final Function<Block.@NotNull Properties, Block.@NotNull Properties> blockPropertiesFixer,
+                    final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>,
+                            MultiblockPartBlock.@NotNull MultiblockPartProperties<ITurbinePartType>> partPropertiesFixer) {
+        this._properties = new MultiblockPartTypeProperties<>(tileTypeSupplier, blockFactory, translationKey,
+                blockPropertiesFixer, partPropertiesFixer);
     }
 
     //region IMultiblockPartType2
 
     @Override
-    public MultiblockPartTypeProperties<MultiblockTurbine, TurbinePartType> getPartTypeProperties() {
+    public MultiblockPartTypeProperties<MultiblockTurbine, ITurbinePartType> getPartTypeProperties() {
         return this._properties;
     }
 
@@ -124,7 +145,7 @@ public enum TurbinePartType
     //endregion
     //region internals
 
-    private static AbstractBlock.Properties rotorBlock(final AbstractBlock.Properties originals) {
+    private static BlockBehaviour.Properties rotorBlock(final BlockBehaviour.Properties originals) {
         return originals
                 .sound(SoundType.GLASS)
                 .noOcclusion()
@@ -132,7 +153,7 @@ public enum TurbinePartType
                 .isViewBlocking((blockState, blockReader, pos) -> false);
     }
 
-    private final MultiblockPartTypeProperties<MultiblockTurbine, TurbinePartType> _properties;
+    private final MultiblockPartTypeProperties<MultiblockTurbine, ITurbinePartType> _properties;
 
     //endregion
 }

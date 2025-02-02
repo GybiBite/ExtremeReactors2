@@ -19,15 +19,15 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.sensor;
 
 import it.zerono.mods.extremereactors.Log;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.sensor.AbstractSensorSetting;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.sensor.SensorBehavior;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbineReader;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbineWriter;
+import it.zerono.mods.zerocore.base.redstone.sensor.AbstractSensorSetting;
+import it.zerono.mods.zerocore.base.redstone.sensor.SensorBehavior;
 import it.zerono.mods.zerocore.lib.data.nbt.NBTHelper;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
 
 public class TurbineSensorSetting
-        extends AbstractSensorSetting<ITurbineReader, ITurbineWriter, TurbineSensorType> {
+        extends AbstractSensorSetting<ITurbineReader, ITurbineWriter, TurbineSensorType, TurbineSensorSetting> {
 
     public static final TurbineSensorSetting DISABLED = new TurbineSensorSetting();
 
@@ -35,7 +35,7 @@ public class TurbineSensorSetting
         super(sensor, behavior, v1, v2);
     }
 
-    public static TurbineSensorSetting syncDataFrom(final CompoundNBT data) {
+    public static TurbineSensorSetting syncDataFrom(final CompoundTag data) {
 
         try {
 
@@ -48,7 +48,7 @@ public class TurbineSensorSetting
         }
     }
 
-    public CompoundNBT syncDataTo(CompoundNBT data) {
+    public CompoundTag syncDataTo(CompoundTag data) {
         return super.syncDataTo(NBTHelper.nbtSetEnum(data, "sensor", this.Sensor));
     }
 
@@ -62,7 +62,7 @@ public class TurbineSensorSetting
      * @param externalPowerLevel  the signal level (0 - 15)
      */
     @Override
-    public void inputAction(final ITurbineWriter turbine, final Boolean isExternallyPowered, final int externalPowerLevel) {
+    public void inputAction(final ITurbineWriter turbine, final boolean isExternallyPowered, final int externalPowerLevel) {
 
         switch (this.Sensor) {
 
@@ -78,6 +78,14 @@ public class TurbineSensorSetting
                 this.acceptInputFlowRegulator(turbine, isExternallyPowered, externalPowerLevel);
                 break;
         }
+    }
+
+    //endregion
+    //region AbstractSensorSetting
+
+    @Override
+    public TurbineSensorSetting copy() {
+        return new TurbineSensorSetting(this.Sensor, this.Behavior, this.Value1, this.Value2);
     }
 
     //endregion
@@ -104,11 +112,11 @@ public class TurbineSensorSetting
         this(TurbineSensorType.Disabled, SensorBehavior.Disabled, 0 ,0);
     }
 
-    protected TurbineSensorSetting(final CompoundNBT data) throws IllegalArgumentException {
+    protected TurbineSensorSetting(final CompoundTag data) throws IllegalArgumentException {
         super(data, TurbineSensorSetting::readSensorTypeFrom);
     }
 
-    private static TurbineSensorType readSensorTypeFrom(final CompoundNBT data) {
+    private static TurbineSensorType readSensorTypeFrom(final CompoundTag data) {
 
         if (!data.contains("sensor")) {
             throw new IllegalArgumentException("Invalid NBT data");
@@ -170,11 +178,11 @@ public class TurbineSensorSetting
                 turbine.setMaxIntakeRate(this.Value1);
                 break;
 
-            case InsertOnPulse:
+            case AugmentOnPulse:
                 turbine.changeMaxIntakeRate(this.Value1);
                 break;
 
-            case RetractOnPulse:
+            case ReduceOnPulse:
                 turbine.changeMaxIntakeRate(-this.Value1);
                 break;
         }

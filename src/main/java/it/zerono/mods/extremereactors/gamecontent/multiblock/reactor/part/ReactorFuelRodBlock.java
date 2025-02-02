@@ -18,51 +18,51 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part;
 
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactorPartType;
 import it.zerono.mods.zerocore.base.multiblock.part.INeverCauseRenderingSkip;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.state.StateContainer;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class ReactorFuelRodBlock
-        extends MultiblockPartBlock<MultiblockReactor, ReactorPartType>
+        extends MultiblockPartBlock<MultiblockReactor, IReactorPartType>
         implements INeverCauseRenderingSkip {
 
-    public ReactorFuelRodBlock(final MultiblockPartProperties<ReactorPartType> properties) {
+    public ReactorFuelRodBlock(final MultiblockPartProperties<IReactorPartType> properties) {
         super(properties);
     }
 
     //region Block
 
     @Override
-    public boolean propagatesSkylightDown(BlockState state, IBlockReader reader, BlockPos pos) {
+    public boolean propagatesSkylightDown(BlockState state, BlockGetter reader, BlockPos pos) {
         return true;
     }
 
-    public boolean isNormalCube(BlockState state, IBlockReader worldIn, BlockPos pos) {
+    public boolean isNormalCube(BlockState state, BlockGetter worldIn, BlockPos pos) {
         return false;
     }
 
-    public boolean causesSuffocation(BlockState state, IBlockReader worldIn, BlockPos pos) {
+    public boolean causesSuffocation(BlockState state, BlockGetter worldIn, BlockPos pos) {
         return false;
     }
 
     @OnlyIn(Dist.CLIENT)
-    public float getShadeBrightness(BlockState state, IBlockReader worldIn, BlockPos pos) {
+    public float getShadeBrightness(BlockState state, BlockGetter worldIn, BlockPos pos) {
         return 1.0f;
     }
 
 //    @Override
 //    @OnlyIn(Dist.CLIENT)
-//    public void animateTick(BlockState state, World world, BlockPos pos, Random random) {
+//    public void animateTick(BlockState state, Level world, BlockPos pos, Random random) {
 //
 //        if (Config.CLIENT.disableReactorParticles.get()) {
 //            return;
@@ -89,7 +89,7 @@ public class ReactorFuelRodBlock
     //region ModBlock
 
     @Override
-    protected void buildBlockState(final StateContainer.Builder<Block, BlockState> builder) {
+    protected void buildBlockState(final StateDefinition.Builder<Block, BlockState> builder) {
 
         super.buildBlockState(builder);
         builder.add(BlockStateProperties.AXIS);

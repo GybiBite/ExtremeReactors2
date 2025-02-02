@@ -18,16 +18,16 @@
 
 package it.zerono.mods.extremereactors.gamecontent.compat.jei.reactor;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 import it.zerono.mods.extremereactors.api.coolant.Vapor;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen.CachedSprites;
+import it.zerono.mods.zerocore.lib.client.gui.Orientation;
 import it.zerono.mods.zerocore.lib.client.render.ModRenderHelper;
 import mezz.jei.api.ingredients.IIngredientRenderer;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.TooltipFlag;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class VaporIngredientRenderer
@@ -36,16 +36,13 @@ public class VaporIngredientRenderer
     //region IIngredientRenderer<Vapor>
 
     @Override
-    public void render(final MatrixStack matrix, final int x, final int y, @Nullable Vapor vapor) {
-
-        if (null != vapor) {
-            ModRenderHelper.paintVerticalProgressSprite(matrix, CachedSprites.WATER_SOURCE.get(),
-                    vapor.getColour(), x, y, 0, 16, 16, 0, 1.0d);
-        }
+    public void render(final GuiGraphics gfx, final Vapor vapor) {
+        ModRenderHelper.paintOrientedProgressBarSprite(gfx, Orientation.BottomToTop, CachedSprites.WATER_SOURCE.get(),
+                0, 0, 0, 16, 16, 1.0d, vapor.getColour());
     }
 
     @Override
-    public List<ITextComponent> getTooltip(final Vapor vapor, final ITooltipFlag tooltipFlag) {
+    public List<Component> getTooltip(final Vapor vapor, final TooltipFlag tooltipFlag) {
         return ObjectLists.singleton(vapor.getTranslatedName());
     }
 

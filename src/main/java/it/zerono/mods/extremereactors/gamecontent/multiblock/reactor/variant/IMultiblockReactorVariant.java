@@ -18,11 +18,11 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant;
 
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.variant.IMultiblockGeneratorVariant;
-import net.minecraft.util.math.MathHelper;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.common.variant.IMultiblockFluidGeneratorVariant;
+import net.minecraft.util.Mth;
 
 public interface IMultiblockReactorVariant
-        extends IMultiblockGeneratorVariant {
+        extends IMultiblockFluidGeneratorVariant {
 
     float getRadiationAttenuation();
 
@@ -33,18 +33,18 @@ public interface IMultiblockReactorVariant
     float getFluidFuelConversionEfficiency();
 
     default int solidSourceAmountToReactantAmount(int originalAmount) {
-        return MathHelper.floor(originalAmount * this.getSolidFuelConversionEfficiency());
+        return Mth.floor(originalAmount * this.getSolidFuelConversionEfficiency());
     }
 
     default int reactantAmountToSolidSourceAmount(int originalAmount) {
-        return MathHelper.floor(originalAmount / this.getSolidFuelConversionEfficiency());
+        return Mth.floor(originalAmount / this.getSolidFuelConversionEfficiency());
     }
 
     default int fluidSourceAmountToReactantAmount(int originalAmount) {
-        return MathHelper.floor(originalAmount * this.getFluidFuelConversionEfficiency());
+        return Mth.floor(originalAmount * this.getFluidFuelConversionEfficiency());
     }
 
     default int reactantAmountToFluidSourceAmount(int originalAmount) {
-        return MathHelper.floor(originalAmount / this.getFluidFuelConversionEfficiency());
+        return Mth.floor(originalAmount / this.getFluidFuelConversionEfficiency());
     }
 }

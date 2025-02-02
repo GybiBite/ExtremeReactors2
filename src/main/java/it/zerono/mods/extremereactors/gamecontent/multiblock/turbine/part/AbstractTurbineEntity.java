@@ -19,34 +19,32 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part;
 
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.ReactorVariant;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.TurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.variant.IMultiblockTurbineVariant;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.variant.TurbineVariant;
-import it.zerono.mods.zerocore.base.multiblock.part.AbstractMultiblockEntity;
+import it.zerono.mods.zerocore.base.multiblock.part.AbstractMultiblockMachineEntity;
 import it.zerono.mods.zerocore.lib.CodeHelper;
+import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartTypeProvider;
-import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockVariantProvider;
-import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelData;
 import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelDataCache;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.multiblock.variant.IMultiblockVariant;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.client.model.data.EmptyModelData;
-import net.minecraftforge.client.model.data.IModelData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 public class AbstractTurbineEntity
-        extends AbstractMultiblockEntity<MultiblockTurbine>
-        implements /*IHeatEntity, IRadiationModerator,*/ IMultiblockPartTypeProvider<MultiblockTurbine, TurbinePartType>,
-                    IMultiblockVariantProvider<IMultiblockTurbineVariant> {
+        extends AbstractMultiblockMachineEntity<MultiblockTurbine, IMultiblockTurbineVariant>
+        implements IMultiblockPartTypeProvider<MultiblockTurbine, ITurbinePartType> {
 
-    public AbstractTurbineEntity(final TileEntityType<?> type) {
-        super(type);
+    public AbstractTurbineEntity(final BlockEntityType<?> type, final BlockPos position, final BlockState blockState) {
+        super(type, position, blockState);
     }
 
     protected boolean isTurbineActive() {
@@ -62,22 +60,32 @@ public class AbstractTurbineEntity
                 .ifPresent(c -> c.setMachineActive(active));
     }
 
-    public ITextComponent getPartDisplayName() {
-        return new TranslationTextComponent("gui.bigreactors.multiblock_variant_part_format.title",
-                new TranslationTextComponent(this.getMultiblockVariant().map(IMultiblockVariant::getTranslationKey).orElse("unknown")),
-                new TranslationTextComponent(this.getPartType().map(TurbinePartType::getTranslationKey).orElse("unknown")));
+    public Component getPartDisplayName() {
+        return Component.translatable("gui.bigreactors.multiblock_variant_part_format.title",
+                Component.translatable(this.getMultiblockVariant().map(IMultiblockVariant::getTranslationKey).orElse("unknown")),
+                Component.translatable(this.getPartType().map(ITurbinePartType::getTranslationKey).orElse("unknown")));
     }
 
     //region client render support
 
     @Override
-    protected IModelData getUpdatedModelData() {
+    protected ModelData getUpdatedModelData() {
         return CodeHelper.optionalMap(this.getMultiblockVariant(), this.getPartType(), this::getUpdatedModelData)
-                .orElse(EmptyModelData.INSTANCE);
+                .orElse(ModelData.EMPTY);
     }
 
     protected int getUpdatedModelVariantIndex() {
         return 0;
+    }
+
+    //endregion
+    //region IDebuggable
+
+    @Override
+    public void getDebugMessages(LogicalSide side, IDebugMessages messages) {
+
+        super.getDebugMessages(side, messages);
+        messages.addUnlocalized("Model Variant Index: %d", this.getUpdatedModelVariantIndex());
     }
 
     //endregion
@@ -117,10 +125,10 @@ public class AbstractTurbineEntity
     @Override
     public MultiblockTurbine createController() {
 
-        final World myWorld = this.getLevel();
+        final Level myWorld = this.getLevel();
 
         if (null == myWorld) {
-            throw new RuntimeException("Trying to create a Controller from a Part without a World");
+            throw new RuntimeException("Trying to create a Controller from a Part without a Level");
         }
 
         return new MultiblockTurbine(this.getLevel(), this.getMultiblockVariant().orElse(TurbineVariant.Basic));
@@ -156,11 +164,9 @@ public class AbstractTurbineEntity
     //endregion
     //region client render support
 
-    protected IModelData getUpdatedModelData(final IMultiblockTurbineVariant variant, final TurbinePartType partType) {
-        return getVariantModelDataCache(variant).computeIfAbsent(partType.ordinal(), this.getUpdatedModelVariantIndex(),
-                this.getOutwardFacings(),
-                () -> new CuboidPartVariantsModelData(partType.ordinal(), this.getUpdatedModelVariantIndex(),
-                        this.getOutwardFacings()));
+    protected ModelData getUpdatedModelData(final IMultiblockTurbineVariant variant, final ITurbinePartType partType) {
+        return getVariantModelDataCache(variant).computeIfAbsent(partType.getByteHashCode(), this.getUpdatedModelVariantIndex(),
+                this.getOutwardFacings());
     }
 
     private static CuboidPartVariantsModelDataCache getVariantModelDataCache(final IMultiblockTurbineVariant variant) {

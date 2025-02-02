@@ -18,15 +18,15 @@
 
 package it.zerono.mods.extremereactors.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class General {
 
-    public final ForgeConfigSpec.DoubleValue fuelUsageMultiplier;
-    public final ForgeConfigSpec.DoubleValue powerProductionMultiplier;
-    public final ForgeConfigSpec.IntValue ticksPerRedstoneUpdate;
+    public final ModConfigSpec.DoubleValue fuelUsageMultiplier;
+    public final ModConfigSpec.DoubleValue powerProductionMultiplier;
+    public final ModConfigSpec.IntValue ticksPerRedstoneUpdate;
 
-    General(final ForgeConfigSpec.Builder builder) {
+    General(final ModConfigSpec.Builder builder) {
 
         builder.comment("General options").push("general");
 
@@ -40,7 +40,7 @@ public class General {
                 .comment("A multiplier for balancing overall power production from Extreme Reactors generators.")
                 .translation("config.bigreactors.general.powerproductionmultiplier")
                 .worldRestart()
-                .defineInRange("powerProductionMultiplier", 1.0, 0.5, 100.0);
+                .defineInRange("powerProductionMultiplier", 1.0, 0.005, 100.0);
 
         this.ticksPerRedstoneUpdate = builder
                 .comment("Number of ticks between updates for the Redstone Port.")

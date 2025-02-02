@@ -36,12 +36,12 @@ import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.client.model.data.IModelData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 public class ReactorFuelRodEntity
         extends AbstractReactorEntity
@@ -49,9 +49,9 @@ public class ReactorFuelRodEntity
 
     public static final int FUEL_CAPACITY_PER_FUEL_ROD = 4 * ReactantMappingsRegistry.STANDARD_SOLID_REACTANT_AMOUNT; // 4 ingots per rod
 
-    public ReactorFuelRodEntity() {
+    public ReactorFuelRodEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REACTOR_FUELROD.get());
+        super(Content.TileEntityTypes.REACTOR_FUELROD.get(), position, blockState);
         this._controlRod = null;
         this._rodIndex = -1;
         this._occluded = false;
@@ -60,7 +60,7 @@ public class ReactorFuelRodEntity
     public double getHeatTransferRate() {
 
         final Direction.Plane fuelAssemblyPlane = CodeHelper.perpendicularPlane(this.getFuelRodsLayout().getAxis());
-        final World world = this.getPartWorldOrFail();
+        final Level world = this.getPartWorldOrFail();
         final BlockPos rodPosition = this.getBlockPos();
         double heatTransferRate = 0d;
 
@@ -79,7 +79,7 @@ public class ReactorFuelRodEntity
 
             // No, is it a tile entity or a moderator maybe?
 
-            final TileEntity te = WorldHelper.getLoadedTile(world, targetPosition);
+            final BlockEntity te = WorldHelper.getLoadedTile(world, targetPosition);
 
             if (!(te instanceof ReactorFuelRodEntity) && te instanceof IHeatEntity) {
 
@@ -121,7 +121,7 @@ public class ReactorFuelRodEntity
     }
 
     @Override
-    protected IModelData getUpdatedModelData() {
+    protected ModelData getUpdatedModelData() {
         return this.getFuelRodsLayoutForRendering().getFuelRodModelData(this.getFuelRodIndex(), this.isOccluded());
     }
 

@@ -19,31 +19,44 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model;
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactorPartType;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.IMultiblockReactorVariant;
-import it.zerono.mods.zerocore.lib.block.property.BlockFacingsProperty;
-import it.zerono.mods.zerocore.lib.client.model.BlockVariantsModelBuilder;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
-import net.minecraft.util.ResourceLocation;
+import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.ReactorVariant;
+import it.zerono.mods.zerocore.base.multiblock.client.model.AbstractMultiblockModelBuilder;
 
-public class ReactorGlassModelBuilder extends BlockVariantsModelBuilder {
+public abstract class ReactorGlassModelBuilder
+        extends AbstractMultiblockModelBuilder {
 
-    public ReactorGlassModelBuilder(final IMultiblockReactorVariant variant) {
+    public static class Basic
+            extends ReactorGlassModelBuilder {
 
-        super(true, true, false);
+        public Basic() {
+            super(ReactorVariant.Basic);
+        }
 
-        this.addBlock(ReactorPartType.Glass.ordinal(), getBlockStateRL(variant, BlockFacingsProperty.None), 0, false);
+        @Override
+        public void build() {
 
-        for (final BlockFacingsProperty facing : BlockFacingsProperty.values()) {
-            this.addVariant(ReactorPartType.Glass.ordinal(), getBlockStateRL(variant, facing));
+            this.addGlass(Content.Blocks.REACTOR_GLASS_BASIC.get());
+            this.setFallbackModelData(Content.Blocks.REACTOR_GLASS_BASIC.get());
         }
     }
 
-    //region internals
+    public static class Reinforced
+            extends ReactorGlassModelBuilder {
 
-    private static ResourceLocation getBlockStateRL(IMultiblockReactorVariant variant, BlockFacingsProperty blockStateVariant) {
-        return new ModelResourceLocation(ExtremeReactors.newID(variant.getName() + "_reactorglass"), blockStateVariant.asVariantString());
+        public Reinforced() {
+            super(ReactorVariant.Reinforced);
+        }
+
+        @Override
+        public void build() {
+
+            this.addGlass(Content.Blocks.REACTOR_GLASS_REINFORCED.get());
+            this.setFallbackModelData(Content.Blocks.REACTOR_GLASS_REINFORCED.get());
+        }
     }
 
-    //endregion
+    protected ReactorGlassModelBuilder(final ReactorVariant variant) {
+        super(ExtremeReactors.ROOT_LOCATION.appendPath("block", "reactor", variant.getName()));
+    }
 }

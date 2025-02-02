@@ -25,9 +25,10 @@ import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.IDebuggable;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
 import it.zerono.mods.zerocore.lib.data.nbt.NBTHelper;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.LogicalSide;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.neoforged.fml.LogicalSide;
 
 import java.util.function.Consumer;
 
@@ -114,7 +115,7 @@ public class TurbineData
         int maxY = maxInterior.getY();
         int maxZ = maxInterior.getZ();
 
-        final BlockPos.Mutable position = new BlockPos.Mutable();
+        final BlockPos.MutableBlockPos position = new BlockPos.MutableBlockPos();
         final CoilStats coilStats = new CoilStats();
 
         for (int x = minInterior.getX(); x <= maxX; ++x) {
@@ -276,10 +277,6 @@ public class TurbineData
         this._energyGeneratedLastTick = energy;
     }
 
-    void changeEnergyGeneratedLastTick(final double delta) {
-        this._energyGeneratedLastTick += delta;
-    }
-
     public void setFluidConsumedLastTick(final int fluid) {
         this._fluidConsumedLastTick = fluid;
     }
@@ -292,13 +289,13 @@ public class TurbineData
     //region ISyncableEntity
 
     /**
-     * Sync the entity data from the given {@link CompoundNBT}
+     * Sync the entity data from the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to read from
+     * @param data       the {@link CompoundTag} to read from
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         this.setVentSetting(NBTHelper.nbtGetEnum(data, "vent", VentSetting::valueOf, VentSetting.getDefault()));
 
@@ -328,14 +325,14 @@ public class TurbineData
     }
 
     /**
-     * Sync the entity data to the given {@link CompoundNBT}
+     * Sync the entity data to the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to write to
+     * @param data       the {@link CompoundTag} to write to
      * @param syncReason the reason why the synchronization is necessary
-     * @return the {@link CompoundNBT} the data was written to (usually {@code data})
+     * @return the {@link CompoundTag} the data was written to (usually {@code data})
      */
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         NBTHelper.nbtSetEnum(data, "vent", this.getVentSetting());
 

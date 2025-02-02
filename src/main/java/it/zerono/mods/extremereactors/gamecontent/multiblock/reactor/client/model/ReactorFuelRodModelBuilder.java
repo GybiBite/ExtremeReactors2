@@ -22,20 +22,28 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.IMultiblockReactorVariant;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.ReactorVariant;
 import it.zerono.mods.zerocore.lib.client.model.ICustomModelBuilder;
 import it.zerono.mods.zerocore.lib.client.render.ModRenderHelper;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.client.renderer.model.ModelResourceLocation;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.ModelBakeEvent;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.core.Direction;
+import net.neoforged.neoforge.client.event.ModelEvent;
 
 import java.util.Map;
 
 public class ReactorFuelRodModelBuilder
         implements ICustomModelBuilder {
 
-    public ReactorFuelRodModelBuilder(final IMultiblockReactorVariant variant) {
+    public static ReactorFuelRodModelBuilder basic() {
+        return new ReactorFuelRodModelBuilder(ReactorVariant.Basic);
+    }
+
+    public static ReactorFuelRodModelBuilder reinforced() {
+        return new ReactorFuelRodModelBuilder(ReactorVariant.Reinforced);
+    }
+
+    private ReactorFuelRodModelBuilder(final ReactorVariant variant) {
 
         this._ids = new Object2ObjectArrayMap<>(3);
 
@@ -47,16 +55,16 @@ public class ReactorFuelRodModelBuilder
     //region ICustomModelBuilder
 
     @Override
-    public void onRegisterModels() {
+    public void onRegisterModels(final ModelEvent.RegisterAdditional event) {
     }
 
     @Override
-    public void onBakeModels(final ModelBakeEvent event) {
+    public void onBakeModels(final ModelEvent.ModifyBakingResult event) {
 
-        final Map<ResourceLocation, IBakedModel> registry = event.getModelRegistry();
+        final Map<ModelResourceLocation, BakedModel> registry = event.getModels();
 
-        final IBakedModel missing = ModRenderHelper.getMissingModel(registry);
-        final Object2ObjectMap<Direction.Axis, IBakedModel> baseModels = new Object2ObjectArrayMap<>(this._ids.size());
+        final BakedModel missing = ModRenderHelper.getMissingModel(registry);
+        final Object2ObjectMap<Direction.Axis, BakedModel> baseModels = new Object2ObjectArrayMap<>(this._ids.size());
 
         this._ids.forEach((axis, id) -> baseModels.put(axis, registry.getOrDefault(id, missing)));
 
@@ -68,13 +76,13 @@ public class ReactorFuelRodModelBuilder
     //endregion
     //region internals
 
-    private static ResourceLocation getBlockStateRL(final IMultiblockReactorVariant variant,
-                                                    final Direction.Axis axis) {
-        return new ModelResourceLocation(ExtremeReactors.newID(variant.getName() + "_reactorfuelrod"),
+    private static ModelResourceLocation getBlockStateRL(final IMultiblockReactorVariant variant,
+                                                         final Direction.Axis axis) {
+        return new ModelResourceLocation(ExtremeReactors.ROOT_LOCATION.buildWithSuffix(variant.getName() + "_reactorfuelrod"),
                 String.format("axis=%s", axis.getName()));
     }
 
-    private final Object2ObjectMap<Direction.Axis, ResourceLocation> _ids;
+    private final Object2ObjectMap<Direction.Axis, ModelResourceLocation> _ids;
 
     //endregion
 }

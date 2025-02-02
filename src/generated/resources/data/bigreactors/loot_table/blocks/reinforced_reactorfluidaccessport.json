@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "include": [
+                "bigreactors:reactor_fluid_access_port"
+              ],
+              "source": "block_entity"
+            }
+          ],
+          "name": "bigreactors:reinforced_reactorfluidaccessport"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "bigreactors:blocks/reinforced_reactorfluidaccessport"
+}

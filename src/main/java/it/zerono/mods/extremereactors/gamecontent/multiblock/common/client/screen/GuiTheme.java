@@ -19,70 +19,61 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.screen;
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
-import it.zerono.mods.extremereactors.Log;
-import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.client.gui.Theme;
-import net.minecraft.client.Minecraft;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.common.util.NonNullSupplier;
-import net.minecraftforge.resource.IResourceType;
-import net.minecraftforge.resource.ISelectiveResourceReloadListener;
-import net.minecraftforge.resource.VanillaResourceType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.profiling.ProfilerFiller;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.function.Predicate;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 public enum GuiTheme
-        implements NonNullSupplier<Theme>, ISelectiveResourceReloadListener {
+        implements Supplier<@NotNull Theme>, PreparableReloadListener {
 
     ER;
 
     GuiTheme() {
-        CodeHelper.addResourceReloadListener(this);
+        this._theme = Theme.DEFAULT;
     }
 
     //region NonNullSupplier<Theme>
 
-    @Nonnull
+    @NotNull
     @Override
     public Theme get() {
-
-        if (null == this._theme) {
-            this.reload(Minecraft.getInstance().getResourceManager());
-        }
-
         return this._theme;
     }
 
     //endregion
-    //region ISelectiveResourceReloadListener
+    //region PreparableReloadListener
 
     @Override
-    public void onResourceManagerReload(IResourceManager resourceManager, Predicate<IResourceType> resourcePredicate) {
-
-        if (resourcePredicate.test(VanillaResourceType.TEXTURES) && resourceManager.hasResource(ID)) {
-            this.reload(resourceManager);
-        }
+    public CompletableFuture<Void> reload(PreparationBarrier barrier, ResourceManager resourceManager,
+                                          ProfilerFiller prepareProfiler, ProfilerFiller applyProfiler,
+                                          Executor prepareExecutor, Executor applyExecutor) {
+        return CompletableFuture.supplyAsync(() -> loadTheme(resourceManager), prepareExecutor)
+                .thenCompose(barrier::wait)
+                .thenAcceptAsync(this::setTheme, applyExecutor);
     }
 
     //endregion
     //region internals
 
-    private void reload(IResourceManager resourceManager) {
-
-        try {
-            this._theme = Theme.read(resourceManager.getResource(ID));
-        } catch (IOException e) {
-            Log.LOGGER.error("Filed to acquire GUI theme.", e);
-        }
+    private static Theme loadTheme(ResourceManager manager) {
+        return manager.getResource(ID)
+                .map(Theme::read)
+                .orElse(Theme.DEFAULT);
     }
 
-    private final static ResourceLocation ID = ExtremeReactors.newID("er_gui_theme.json");
+    private void setTheme(Theme theme) {
+        this._theme = theme;
+    }
 
-    @Nullable
+    private final static ResourceLocation ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix("er_gui_theme.json");
+
     private Theme _theme;
 
     //endregion

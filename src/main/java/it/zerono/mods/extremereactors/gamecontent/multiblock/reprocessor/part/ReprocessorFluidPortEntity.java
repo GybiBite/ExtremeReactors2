@@ -24,23 +24,17 @@ import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
 import it.zerono.mods.zerocore.lib.fluid.handler.FluidHandlerForwarder;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
-import net.minecraft.util.Direction;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class ReprocessorFluidPortEntity
         extends AbstractReprocessorEntity {
 
-    public ReprocessorFluidPortEntity() {
+    public ReprocessorFluidPortEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REPROCESSOR_FLUIDINJECTOR.get());
+        super(Content.TileEntityTypes.REPROCESSOR_FLUIDINJECTOR.get(), position, blockState);
         this._forwarder = new FluidHandlerForwarder(FluidHelper.EMPTY_FLUID_HANDLER);
-        this._capability = LazyOptional.of(() -> this._forwarder);
     }
 
     public IFluidHandler getHandler() {
@@ -69,23 +63,9 @@ public class ReprocessorFluidPortEntity
     }
 
     //endregion
-    //region TileEntity
-
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        return CAPAP_FORGE_FLUIDHANDLER == cap ? this._capability.cast() : super.getCapability(cap, side);
-    }
-
-    //endregion
     //region internals
 
-    @SuppressWarnings("FieldMayBeFinal")
-    @CapabilityInject(IFluidHandler.class)
-    public static Capability<IFluidHandler> CAPAP_FORGE_FLUIDHANDLER = null;
-
     private final FluidHandlerForwarder _forwarder;
-    private final LazyOptional<IFluidHandler> _capability;
 
     //endregion
 }

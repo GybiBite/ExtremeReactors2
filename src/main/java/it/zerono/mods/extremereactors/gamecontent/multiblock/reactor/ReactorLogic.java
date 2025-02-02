@@ -29,10 +29,11 @@ import it.zerono.mods.zerocore.lib.data.WideAmount;
 import it.zerono.mods.zerocore.lib.data.nbt.IMergeableEntity;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
 import it.zerono.mods.zerocore.lib.energy.WideEnergyBuffer;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.profiler.IProfiler;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.Optional;
 
@@ -55,7 +56,7 @@ public class ReactorLogic
      */
     public boolean update() {
 
-        final IProfiler profiler = this._reactor.getWorld().getProfiler();
+        final ProfilerFiller profiler = this._reactor.getWorld().getProfiler();
         final IHeat reactorHeat = this.getReactorHeat();
 
         //TODO variants
@@ -66,9 +67,6 @@ public class ReactorLogic
 
         final double startingReactorHeat = reactorHeat.getAsDouble();
         final WideAmount startingEnergy = this._energyBuffer.getEnergyStored();
-
-        this.getUiStats().setAmountGeneratedLastTick(0);
-        this.getUiStats().setFuelConsumedLastTick(0);
 
         //////////////////////////////////////////////////////////////////////////////
         // IRRADIATION
@@ -136,7 +134,7 @@ public class ReactorLogic
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, ISyncableEntity.SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
         this.setFertility(data.getFloat("fertility"));
     }
 
@@ -147,7 +145,7 @@ public class ReactorLogic
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, ISyncableEntity.SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         data.putFloat("fertility", this._fertility);
         return data;
@@ -222,6 +220,8 @@ public class ReactorLogic
 
         if (source.isLinked()) {
             this.performIrradiationFrom(source);
+        } else {
+            this.getUiStats().setFuelConsumedLastTick(0);
         }
     }
 
@@ -238,7 +238,7 @@ public class ReactorLogic
             // Assimilate results of radiation
             this.getFuelHeat().add(data.getFuelHeatChange(this.getFuelRodsCount()));
             this.getReactorHeat().add(data.getEnvironmentHeatChange(this.getReactorVolume()));
-            this.getUiStats().changeFuelConsumedLastTick(data.fuelUsage);
+            this.getUiStats().setFuelConsumedLastTick(data.fuelUsage);
         });
     }
 
@@ -323,12 +323,11 @@ public class ReactorLogic
      */
     private void generateEnergy(double rawEnergy) {
 
-        rawEnergy = rawEnergy * Config.COMMON.general.powerProductionMultiplier.get() *
-                Config.COMMON.reactor.reactorPowerProductionMultiplier.get() *
+        rawEnergy = rawEnergy * MultiblockReactor.getAdjustedPowerProductionMultiplier() *
                 this._reactor.getVariant().getEnergyGenerationEfficiency();
 
         this._energyBuffer.grow(rawEnergy);
-        this.getUiStats().changeAmountGeneratedLastTick(rawEnergy);
+        this.getUiStats().setAmountGeneratedLastTick(rawEnergy);
     }
 
     //endregion
@@ -388,7 +387,7 @@ public class ReactorLogic
         // Propagate radiation to others
 
         BlockPos originCoord = source.getWorldPosition();
-        BlockPos.Mutable currentCoord;
+        BlockPos.MutableBlockPos currentCoord;
         final RadiationPacket radPacket = new RadiationPacket();
 
         effectiveRadIntensity *= 0.25f; // We're going to do this four times, no need to repeat

@@ -20,7 +20,8 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor;
 
 import it.zerono.mods.zerocore.lib.data.nbt.IMergeableEntity;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 
 class Heat implements IHeat, ISyncableEntity, IMergeableEntity {
 
@@ -66,13 +67,13 @@ class Heat implements IHeat, ISyncableEntity, IMergeableEntity {
     //region ISyncableEntity
 
     /**
-     * Sync the entity data from the given {@link CompoundNBT}
+     * Sync the entity data from the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to read from
+     * @param data       the {@link CompoundTag} to read from
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         if (data.contains("heat")) {
             this.set(data.getDouble("heat"));
@@ -80,14 +81,14 @@ class Heat implements IHeat, ISyncableEntity, IMergeableEntity {
     }
 
     /**
-     * Sync the entity data to the given {@link CompoundNBT}
+     * Sync the entity data to the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to write to
+     * @param data       the {@link CompoundTag} to write to
      * @param syncReason the reason why the synchronization is necessary
-     * @return the {@link CompoundNBT} the data was written to (usually {@code data})
+     * @return the {@link CompoundTag} the data was written to (usually {@code data})
      */
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         data.putDouble("heat", this.getAsDouble());
         return data;

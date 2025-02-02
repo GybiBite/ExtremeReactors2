@@ -23,35 +23,34 @@ import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.model.data.ModelTransformers;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.WasteEjectionSetting;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.container.ReactorControllerContainer;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
 import it.zerono.mods.zerocore.lib.network.INetworkTileEntitySyncProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.LogicalSide;
-
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import org.jetbrains.annotations.Nullable;
 
 public class ReactorControllerEntity
         extends AbstractReactorEntity
-        implements INamedContainerProvider, INetworkTileEntitySyncProvider {
+        implements MenuProvider, INetworkTileEntitySyncProvider {
 
     public static String COMMAND_WASTE_AUTOMATIC = "autowaste";
     public static String COMMAND_WASTE_MANUAL = "manualwaste";
     public static String COMMAND_SCRAM = "scram";
     public static String COMMAND_VOID_REACTANTS = "voidr";
 
-    public ReactorControllerEntity() {
+    public ReactorControllerEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REACTOR_CONTROLLER.get());
+        super(Content.TileEntityTypes.REACTOR_CONTROLLER.get(), position, blockState);
 
         this.setCommandDispatcher(TileCommandDispatcher.<ReactorControllerEntity>builder()
                 .addServerHandler(CommonConstants.COMMAND_ACTIVATE, rce -> rce.setReactorActive(true))
@@ -128,7 +127,7 @@ public class ReactorControllerEntity
      * @param state
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return this.isMachineAssembled();
     }
 
@@ -142,7 +141,7 @@ public class ReactorControllerEntity
      * @param updateNow if true, send an update to the player immediately.
      */
     @Override
-    public void enlistForUpdates(ServerPlayerEntity player, boolean updateNow) {
+    public void enlistForUpdates(ServerPlayer player, boolean updateNow) {
         this.executeOnController(c -> c.enlistForUpdates(player, updateNow));
     }
 
@@ -152,7 +151,7 @@ public class ReactorControllerEntity
      * @param player the player to be removed from the update queue.
      */
     @Override
-    public void delistFromUpdates(ServerPlayerEntity player) {
+    public void delistFromUpdates(ServerPlayer player) {
         this.executeOnController(c -> c.delistFromUpdates(player));
     }
 
@@ -164,7 +163,7 @@ public class ReactorControllerEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -173,15 +172,14 @@ public class ReactorControllerEntity
      * @param player    the player
      * @return the container to use on the server
      */
-    @SuppressWarnings("ConstantConditions")
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
-        return ModTileContainer.empty(Content.ContainerTypes.REACTOR_CONTROLLER.get(), windowId, this, (ServerPlayerEntity)player);
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
+        return new ReactorControllerContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 

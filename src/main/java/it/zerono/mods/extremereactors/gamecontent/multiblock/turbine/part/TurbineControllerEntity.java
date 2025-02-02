@@ -23,28 +23,27 @@ import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.model.data.ModelTransformers;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.VentSetting;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.container.TurbineControllerContainer;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
 import it.zerono.mods.zerocore.lib.data.nbt.NBTHelper;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
 import it.zerono.mods.zerocore.lib.network.INetworkTileEntitySyncProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.LogicalSide;
-
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import org.jetbrains.annotations.Nullable;
 
 public class TurbineControllerEntity
         extends AbstractTurbineEntity
-        implements INamedContainerProvider, INetworkTileEntitySyncProvider {
+        implements MenuProvider, INetworkTileEntitySyncProvider {
 
     public static String COMMAND_ENGAGE_COILS = "coilon";
     public static String COMMAND_DISENGAGE_COILS = "coiloff";
@@ -52,9 +51,9 @@ public class TurbineControllerEntity
     public static String COMMAND_SET_VENT = "vent";
     public static String COMMAND_SCRAM = "scram";
 
-    public TurbineControllerEntity() {
+    public TurbineControllerEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.TURBINE_CONTROLLER.get());
+        super(Content.TileEntityTypes.TURBINE_CONTROLLER.get(), position, blockState);
 
         this.setCommandDispatcher(TileCommandDispatcher.<TurbineControllerEntity>builder()
                 .addServerHandler(CommonConstants.COMMAND_ACTIVATE, tce -> tce.setTurbineActive(true))
@@ -124,7 +123,7 @@ public class TurbineControllerEntity
     //region AbstractModBlockEntity
 
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return this.isMachineAssembled();
     }
 
@@ -138,7 +137,7 @@ public class TurbineControllerEntity
      * @param updateNow if true, send an update to the player immediately.
      */
     @Override
-    public void enlistForUpdates(ServerPlayerEntity player, boolean updateNow) {
+    public void enlistForUpdates(ServerPlayer player, boolean updateNow) {
         this.getMultiblockController().ifPresent(c -> c.enlistForUpdates(player, updateNow));
     }
 
@@ -148,7 +147,7 @@ public class TurbineControllerEntity
      * @param player the player to be removed from the update queue.
      */
     @Override
-    public void delistFromUpdates(ServerPlayerEntity player) {
+    public void delistFromUpdates(ServerPlayer player) {
         this.getMultiblockController().ifPresent(c -> c.delistFromUpdates(player));
     }
 
@@ -160,7 +159,7 @@ public class TurbineControllerEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -171,12 +170,12 @@ public class TurbineControllerEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
-        return ModTileContainer.empty(Content.ContainerTypes.TURBINE_CONTROLLER.get(), windowId, this, (ServerPlayerEntity)player);
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
+        return new TurbineControllerContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -184,11 +183,11 @@ public class TurbineControllerEntity
     //region internals
     //region Tile Commands
 
-    private void setIntakeRate(CompoundNBT data) {
+    private void setIntakeRate(CompoundTag data) {
         this.executeOnController(turbine -> turbine.setMaxIntakeRate(data.getInt("rate")));
     }
 
-    private void setVent(CompoundNBT data) {
+    private void setVent(CompoundTag data) {
 
         final VentSetting setting = NBTHelper.nbtGetEnum(data, "vent", VentSetting::valueOf, VentSetting.getDefault());
 

@@ -28,15 +28,17 @@ import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.compat.jei.ExtremeReactorsJeiPlugin;
 import it.zerono.mods.zerocore.lib.compat.jei.AbstractModRecipeCategory;
 import it.zerono.mods.zerocore.lib.tag.TagsHelper;
-import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.gui.ingredient.IGuiFluidStackGroup;
-import mezz.jei.api.gui.ingredient.IGuiIngredientGroup;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
-import mezz.jei.api.ingredients.IIngredients;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.fluids.FluidStack;
+import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.RecipeType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,15 +47,12 @@ import java.util.Map;
 public class ReactantFromFluidRecipeCategory
         extends AbstractModRecipeCategory<Reactant> {
 
-    public static ResourceLocation ID = ExtremeReactors.newID("jei_reactantsmappings_fluid");
-
     public ReactantFromFluidRecipeCategory(final IGuiHelper guiHelper) {
 
-        super(ID, new TranslationTextComponent("compat.bigreactors.jei.reactantsmappings.fluid.recipecategory.title"),
-                Content.Blocks.REACTOR_FUELROD_BASIC.get().createItemStack(), guiHelper,
-                guiHelper.drawableBuilder(ExtremeReactors.newID("textures/gui/jei/mapping.png"), 0, 0, 144, 56)
-                        .setTextureSize(144, 56)
-                        .build());
+        super(RecipeType.create(ExtremeReactors.MOD_ID, "jei_reactantsmappings_fluid", Reactant.class),
+                Component.translatable("compat.bigreactors.jei.reactantsmappings.fluid.recipecategory.title"),
+                new ItemStack(Content.Blocks.REACTOR_FUELROD_BASIC.get()), guiHelper,
+                ExtremeReactorsJeiPlugin.defaultMappingDrawable(guiHelper));
 
         this._mappings = ReactantMappingsRegistry.getToFluidMap();
     }
@@ -65,44 +64,26 @@ public class ReactantFromFluidRecipeCategory
     //region AbstractModRecipeCategory
 
     @Override
-    public Class<? extends Reactant> getRecipeClass() {
-        return Reactant.class;
-    }
-
-    @Override
-    public void setIngredients(final Reactant reactant, final IIngredients ingredients) {
+    public void setRecipe(final IRecipeLayoutBuilder builder, final Reactant reactant, final IFocusGroup focuses) {
 
         final List<FluidStack> inputs = new ObjectArrayList<>(16);
 
-        for (final IMapping<Reactant, ResourceLocation> mapping : this._mappings.get(reactant)) {
-            TagsHelper.FLUIDS.getTag(mapping.getProduct())
-                    .ifPresent(tag -> TagsHelper.FLUIDS.getMatchingElements(tag)
-                            .forEach(item -> inputs.add(new FluidStack(item, 1000))));
+        for (final IMapping<Reactant, TagKey<Fluid>> mapping : this._mappings.get(reactant)) {
+            TagsHelper.FLUIDS.getObjects(mapping.getProduct())
+                    .forEach(item -> inputs.add(new FluidStack(item, 1000)));
         }
 
-        ingredients.setInputLists(VanillaTypes.FLUID, ObjectLists.singleton(inputs));
-        ingredients.setOutput(ExtremeReactorsJeiPlugin.REACTANT_INGREDIENT_TYPE, reactant);
-    }
+        builder.addSlot(RecipeIngredientRole.INPUT, 33, 20)
+                .addIngredients(NeoForgeTypes.FLUID_STACK, inputs);
 
-    @Override
-    public void setRecipe(final IRecipeLayout layout, final Reactant reactant, final IIngredients ingredients) {
-
-        final IGuiIngredientGroup<Reactant> output = layout.getIngredientsGroup(ExtremeReactorsJeiPlugin.REACTANT_INGREDIENT_TYPE);
-        final IGuiFluidStackGroup inputs = layout.getFluidStacks();
-
-        // solid inputs
-        inputs.init(0, true, 33, 20);
-        inputs.set(ingredients);
-
-        // output
-        output.init(1, false, 95, 20);
-        output.set(1, reactant);
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 95, 20)
+                .addIngredients(ExtremeReactorsJeiPlugin.REACTANT_INGREDIENT_TYPE, ObjectLists.singleton(reactant));
     }
 
     //endregion
     //region internals
 
-    private final Map<Reactant, List<IMapping<Reactant, ResourceLocation>>> _mappings;
+    private final Map<Reactant, List<IMapping<Reactant, TagKey<Fluid>>>> _mappings;
 
     //endregion
 }

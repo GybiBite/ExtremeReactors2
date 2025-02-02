@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "bigreactors:reactants",
+  "ingredients": [
+    {
+      "item": "bigreactors:cyanite_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "id": "bigreactors:cyanite_ingot"
+  }
+}

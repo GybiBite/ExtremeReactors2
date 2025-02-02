@@ -20,33 +20,26 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.recipe
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.gamecontent.Content;
-import it.zerono.mods.zerocore.lib.datagen.provider.recipe.TwoToOneRecipeBuilder;
 import it.zerono.mods.zerocore.lib.recipe.AbstractTwoToOneRecipe;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.FluidStackRecipeIngredient;
-import it.zerono.mods.zerocore.lib.recipe.ingredient.IRecipeIngredient;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.ItemStackRecipeIngredient;
-import it.zerono.mods.zerocore.lib.recipe.result.IRecipeResult;
 import it.zerono.mods.zerocore.lib.recipe.result.ItemStackRecipeResult;
-import it.zerono.mods.zerocore.lib.recipe.serializer.TwoToOneRecipeSerializer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.IRecipeType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidStack;
-
-import java.util.function.IntFunction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class ReprocessorRecipe
         extends AbstractTwoToOneRecipe<ItemStack, FluidStack, ItemStack,
-                                        ItemStackRecipeIngredient, FluidStackRecipeIngredient, ItemStackRecipeResult> {
+                    ItemStackRecipeIngredient, FluidStackRecipeIngredient, ItemStackRecipeResult> {
 
     public static final String NAME = "reprocessor";
-    public static final ResourceLocation ID = ExtremeReactors.newID(NAME);
-    public static final IntFunction<String> JSON_LABELS_SUPPLIER;
+    public static final ResourceLocation ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix(NAME);
 
-    protected ReprocessorRecipe(final ResourceLocation id, final ItemStackRecipeIngredient ingot,
-                                final FluidStackRecipeIngredient fluid, final ItemStackRecipeResult result) {
-        super(id, ingot, fluid, result, JSON_LABELS_SUPPLIER);
+    public ReprocessorRecipe(ItemStackRecipeIngredient ingot, FluidStackRecipeIngredient fluid,
+                             ItemStackRecipeResult result) {
+        super(ingot, fluid, result);
     }
 
     public boolean match(final ItemStack stack) {
@@ -61,38 +54,24 @@ public class ReprocessorRecipe
         return this.getIngredient2().testIgnoreAmount(stack);
     }
 
-    public static IRecipeSerializer<ReprocessorRecipe> serializer() {
-        return new TwoToOneRecipeSerializer<>(ReprocessorRecipe::new,
-                ItemStackRecipeIngredient::from, ItemStackRecipeIngredient::from,
-                FluidStackRecipeIngredient::from, FluidStackRecipeIngredient::from,
-                ItemStackRecipeResult::from, ItemStackRecipeResult::from, JSON_LABELS_SUPPLIER);
-    }
-
-    public static TwoToOneRecipeBuilder<ItemStack, FluidStack, ItemStack> builder(final IRecipeIngredient<ItemStack> ingot,
-                                                                                  final IRecipeIngredient<FluidStack> fluid,
-                                                                                  final IRecipeResult<ItemStack> result) {
-        return new TwoToOneRecipeBuilder<>(ID, ingot, fluid, result, JSON_LABELS_SUPPLIER);
+    public static RecipeSerializer<ReprocessorRecipe> createSerializer() {
+        return AbstractTwoToOneRecipe.createSerializer(
+                "waste", ItemStackRecipeIngredient.CODECS,
+                "fluid", FluidStackRecipeIngredient.CODECS,
+                "result", ItemStackRecipeResult.CODECS,
+                ReprocessorRecipe::new);
     }
 
     //region AbstractTwoToOneRecipe
 
     @Override
-    public IRecipeSerializer<ReprocessorRecipe> getSerializer() {
+    public RecipeSerializer<ReprocessorRecipe> getSerializer() {
         return Content.Recipes.REPROCESSOR_RECIPE_SERIALIZER.get();
     }
 
     @Override
-    public IRecipeType<?> getType() {
-        return Content.Recipes.REPROCESSOR_RECIPE_TYPE;
-    }
-
-    //endregion
-    //region internals
-
-    private static final String[] LABELS = {"waste", "fluid"};
-
-    static {
-        JSON_LABELS_SUPPLIER = n -> LABELS[n];
+    public RecipeType<?> getType() {
+        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.get();
     }
 
     //endregion

@@ -23,13 +23,13 @@ import it.zerono.mods.zerocore.lib.block.BlockFacings;
 import it.zerono.mods.zerocore.lib.block.property.BlockFacingsProperty;
 import it.zerono.mods.zerocore.lib.multiblock.AbstractMultiblockPart;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.AbstractCuboidMultiblockController;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.client.model.data.ModelProperty;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelProperty;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +53,7 @@ public class ModelTransformers {
     public static final Direction BLOCKSTATE_CUSTOM_4 = Direction.EAST;
 */
 
-    public static int defaultModelTransformer(final IModelData data) {
+    public static int defaultModelTransformer(final ModelData data) {
         return MODEL_DEFAULT;
     }
 
@@ -63,7 +63,7 @@ public class ModelTransformers {
             return 0;
         }
 
-        final World world = entity.getPartWorldOrFail();
+        final Level world = entity.getPartWorldOrFail();
         final BlockPos position = entity.getWorldPosition();
         final BlockState entityBlockState = world.getBlockState(position);
         final Block entityBlock = entityBlockState.getBlock();
@@ -129,8 +129,8 @@ public class ModelTransformers {
 
     //region internals
 
-    private static <T> Optional<T> getPropertyValue(final IModelData data, final ModelProperty<T> property) {
-        return data.hasProperty(property) ? Optional.ofNullable(data.getData(property)) : Optional.empty();
+    private static <T> Optional<T> getPropertyValue(final ModelData data, final ModelProperty<T> property) {
+        return data.has(property) ? Optional.ofNullable(data.get(property)) : Optional.empty();
     }
 
     private static final Object s_lock = new Object();

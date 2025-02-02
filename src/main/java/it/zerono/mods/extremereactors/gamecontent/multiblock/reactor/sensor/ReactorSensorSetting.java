@@ -19,15 +19,15 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.sensor;
 
 import it.zerono.mods.extremereactors.Log;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.sensor.AbstractSensorSetting;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.common.sensor.SensorBehavior;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorReader;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorWriter;
+import it.zerono.mods.zerocore.base.redstone.sensor.AbstractSensorSetting;
+import it.zerono.mods.zerocore.base.redstone.sensor.SensorBehavior;
 import it.zerono.mods.zerocore.lib.data.nbt.NBTHelper;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
 
 public class ReactorSensorSetting
-    extends AbstractSensorSetting<IReactorReader, IReactorWriter, ReactorSensorType> {
+    extends AbstractSensorSetting<IReactorReader, IReactorWriter, ReactorSensorType, ReactorSensorSetting> {
 
     public static final ReactorSensorSetting DISABLED = new ReactorSensorSetting();
 
@@ -35,7 +35,7 @@ public class ReactorSensorSetting
         super(sensor, behavior, v1, v2);
     }
 
-    public static ReactorSensorSetting syncDataFrom(final CompoundNBT data) {
+    public static ReactorSensorSetting syncDataFrom(final CompoundTag data) {
 
         try {
 
@@ -48,7 +48,7 @@ public class ReactorSensorSetting
         }
     }
 
-    public CompoundNBT syncDataTo(CompoundNBT data) {
+    public CompoundTag syncDataTo(CompoundTag data) {
         return super.syncDataTo(NBTHelper.nbtSetEnum(data, "sensor", this.Sensor));
     }
 
@@ -62,7 +62,7 @@ public class ReactorSensorSetting
      * @param externalPowerLevel  the signal level (0 - 15)
      */
     @Override
-    public void inputAction(final IReactorWriter reactor, final Boolean isExternallyPowered, final int externalPowerLevel) {
+    public void inputAction(final IReactorWriter reactor, final boolean isExternallyPowered, final int externalPowerLevel) {
 
         switch (this.Sensor) {
 
@@ -78,6 +78,14 @@ public class ReactorSensorSetting
                 this.acceptInputEjectWaste(reactor, isExternallyPowered);
                 break;
         }
+    }
+
+    //endregion
+    //region AbstractSensorSetting
+
+    @Override
+    public ReactorSensorSetting copy() {
+        return new ReactorSensorSetting(this.Sensor, this.Behavior, this.Value1, this.Value2);
     }
 
     //endregion
@@ -104,11 +112,11 @@ public class ReactorSensorSetting
         this(ReactorSensorType.Disabled, SensorBehavior.Disabled, 0 ,0);
     }
 
-    protected ReactorSensorSetting(final CompoundNBT data) throws IllegalArgumentException {
+    protected ReactorSensorSetting(final CompoundTag data) throws IllegalArgumentException {
         super(data, ReactorSensorSetting::readSensorTypeFrom);
     }
 
-    private static ReactorSensorType readSensorTypeFrom(final CompoundNBT data) {
+    private static ReactorSensorType readSensorTypeFrom(final CompoundTag data) {
 
         if (!data.contains("sensor")) {
             throw new IllegalArgumentException("Invalid NBT data");
@@ -152,11 +160,11 @@ public class ReactorSensorSetting
                 reactor.setControlRodsInsertionRatio(this.Value1);
                 break;
 
-            case InsertOnPulse:
+            case AugmentOnPulse:
                 reactor.changeControlRodsInsertionRatio(this.Value1);
                 break;
 
-            case RetractOnPulse:
+            case ReduceOnPulse:
                 reactor.changeControlRodsInsertionRatio(-this.Value1);
                 break;
         }
@@ -164,7 +172,7 @@ public class ReactorSensorSetting
 
     private void acceptInputEjectWaste(final IReactorWriter reactor, final Boolean isExternallyPowered) {
 
-        if (SensorBehavior.EjectOnPulse == this.Behavior && isExternallyPowered) {
+        if (SensorBehavior.PerformOnPulse == this.Behavior && isExternallyPowered) {
             reactor.ejectWaste(false);
         }
     }

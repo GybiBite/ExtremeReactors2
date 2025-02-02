@@ -18,7 +18,7 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.client.model;
 
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.ReprocessorPartType;
+import it.zerono.mods.extremereactors.gamecontent.Content;
 
 public class ReprocessorIOModelBuilder
         extends ReprocessorModelBuilder {
@@ -28,9 +28,11 @@ public class ReprocessorIOModelBuilder
     }
 
     @Override
-    protected void build() {
+    public void build() {
 
-        this.addBlockWithVariants(ReprocessorPartType.WasteInjector, "wasteinjector", "wasteinjector_connected");
-        this.addBlockWithVariants(ReprocessorPartType.Collector, "collector");
+        this.addIoPort(Content.Blocks.REPROCESSOR_COLLECTOR.get());
+        this.addIoPort(Content.Blocks.REPROCESSOR_WASTEINJECTOR.get(), "wasteinjector_connected");
+
+        this.setFallbackModelData(Content.Blocks.REPROCESSOR_COLLECTOR.get());
     }
 }

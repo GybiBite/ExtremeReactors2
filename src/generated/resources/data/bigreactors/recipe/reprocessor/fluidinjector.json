@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:piston"
+    },
+    "2": {
+      "tag": "c:gems/prismarine"
+    },
+    "3": {
+      "tag": "c:gems/lapis"
+    },
+    "C": {
+      "item": "bigreactors:reprocessorcasing"
+    }
+  },
+  "pattern": [
+    "C2C",
+    "313",
+    "C2C"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reprocessorfluidinjector"
+  }
+}

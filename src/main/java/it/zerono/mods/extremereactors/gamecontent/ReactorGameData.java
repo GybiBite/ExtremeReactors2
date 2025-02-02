@@ -23,10 +23,9 @@ import it.zerono.mods.extremereactors.api.coolant.FluidsRegistry;
 import it.zerono.mods.extremereactors.api.coolant.TransitionsRegistry;
 import it.zerono.mods.extremereactors.api.reactor.*;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.Reactants;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.Item;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.material.Fluid;
 
 final class ReactorGameData {
 
@@ -63,14 +62,14 @@ final class ReactorGameData {
     private static void registerReactantMappings() {
 
         registerIngotReactantMapping(Reactants.Yellorium, ContentTags.Items.INGOTS_YELLORIUM, 1);
-        registerIngotReactantMapping(Reactants.Yellorium, "forge:ingots/uranium", 1);
+        registerIngotReactantMapping(Reactants.Yellorium, ContentTags.Items.INGOTS_URANIUM, 1);
         registerIngotReactantMapping(Reactants.Yellorium, ContentTags.Items.BLOCKS_YELLORIUM, 9);
-        registerIngotReactantMapping(Reactants.Yellorium, "forge:storage_blocks/uranium", 9);
+        registerIngotReactantMapping(Reactants.Yellorium, "c:storage_blocks/uranium", 9);
 
         registerIngotReactantMapping(Reactants.Blutonium, ContentTags.Items.INGOTS_BLUTONIUM, 1);
-        registerIngotReactantMapping(Reactants.Blutonium, "forge:ingots/plutonium", 1);
+        registerIngotReactantMapping(Reactants.Blutonium, ContentTags.Items.INGOTS_PLUTONIUM, 1);
         registerIngotReactantMapping(Reactants.Blutonium, ContentTags.Items.BLOCKS_BLUTONIUM, 9);
-        registerIngotReactantMapping(Reactants.Blutonium, "forge:storage_blocks/plutonium", 9);
+        registerIngotReactantMapping(Reactants.Blutonium, "c:storage_blocks/plutonium", 9);
 
         registerIngotReactantMapping(Reactants.Cyanite, ContentTags.Items.INGOTS_CYANITE, 1);
         registerIngotReactantMapping(Reactants.Cyanite, ContentTags.Items.BLOCKS_CYANITE, 9);
@@ -94,42 +93,51 @@ final class ReactorGameData {
 
     private static void registerModerators() {
 
-        ModeratorsRegistry.registerSolid("forge:storage_block/apatite", 0.48f, 0.73f, 1.30f, IHeatEntity.CONDUCTIVITY_STONE);
-        ModeratorsRegistry.registerSolid("forge:storage_block/cinnabar", 0.48f, 0.75f, 1.32f, IHeatEntity.CONDUCTIVITY_STONE);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/iron", 0.50f, 0.75f, 1.40f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/manasteel", 0.60f, 0.75f, 1.50f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/elementium", 0.61f, 0.77f, 1.52f, IHeatEntity.CONDUCTIVITY_EMERALD);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/nickel", 0.51f, 0.77f, 1.40f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/gold", 0.52f, 0.80f, 1.45f, IHeatEntity.CONDUCTIVITY_GOLD);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/diamond", 0.55f, 0.85f, 1.50f, IHeatEntity.CONDUCTIVITY_DIAMOND);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/netherite", 0.55f, 0.95f, 1.65f, IHeatEntity.CONDUCTIVITY_DIAMOND);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/terrasteel", 0.57f, 0.87f, 1.52f, IHeatEntity.CONDUCTIVITY_DIAMOND);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/emerald", 0.55f, 0.85f, 1.50f, IHeatEntity.CONDUCTIVITY_EMERALD);
-        ModeratorsRegistry.registerSolid("forge:glass/colorless", 0.20f, 0.25f, 1.10f, IHeatEntity.CONDUCTIVITY_GLASS);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/copper", 0.50f, 0.75f, 1.40f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/brass", 0.52f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/osmium", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/refined_obsidian", 0.53f, 0.79f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/refined_glowstone", 0.54f, 0.79f, 1.44f, IHeatEntity.CONDUCTIVITY_EMERALD);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/bronze", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/zinc", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/aluminum",0.50f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/steel", 0.50f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/invar", 0.50f, 0.79f, 1.43f, IHeatEntity.CONDUCTIVITY_IRON);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/tin", 0.50f, 0.73f, 1.38f, IHeatEntity.CONDUCTIVITY_SILVER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/silver", 0.51f, 0.79f, 1.43f, IHeatEntity.CONDUCTIVITY_SILVER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/signalum", 0.51f, 0.75f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/lumium", 0.51f, 0.79f, 1.45f, IHeatEntity.CONDUCTIVITY_SILVER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/lead", 0.75f, 0.75f, 1.75f, IHeatEntity.CONDUCTIVITY_SILVER);
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/electrum", 0.53f, 0.82f, 1.47f, 2.2f); // Between gold and emerald
-        //blockElectrumFlux
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/platinum", 0.57f, 0.86f, 1.58f, IHeatEntity.CONDUCTIVITY_EMERALD);
-        //blockShiny
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/enderium", 0.60f, 0.88f, 1.60f, IHeatEntity.CONDUCTIVITY_DIAMOND);
+        ModeratorsRegistry.registerSolid("c:storage_block/apatite", 0.48f, 0.73f, 1.30f, IHeatEntity.CONDUCTIVITY_STONE);
+        ModeratorsRegistry.registerSolid("c:storage_block/cinnabar", 0.48f, 0.75f, 1.32f, IHeatEntity.CONDUCTIVITY_STONE);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/iron", 0.50f, 0.75f, 1.40f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/manasteel", 0.60f, 0.75f, 1.50f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/elementium", 0.61f, 0.77f, 1.52f, IHeatEntity.CONDUCTIVITY_EMERALD);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/nickel", 0.51f, 0.77f, 1.40f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/gold", 0.52f, 0.80f, 1.45f, IHeatEntity.CONDUCTIVITY_GOLD);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/diamond", 0.55f, 0.85f, 1.50f, IHeatEntity.CONDUCTIVITY_DIAMOND);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/netherite", 0.55f, 0.95f, 1.65f, IHeatEntity.CONDUCTIVITY_DIAMOND);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/terrasteel", 0.57f, 0.87f, 1.52f, IHeatEntity.CONDUCTIVITY_DIAMOND);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/emerald", 0.55f, 0.85f, 1.50f, IHeatEntity.CONDUCTIVITY_EMERALD);
+        ModeratorsRegistry.registerSolid("c:glass/colorless", 0.20f, 0.25f, 1.10f, IHeatEntity.CONDUCTIVITY_GLASS);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/copper", 0.50f, 0.75f, 1.40f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/brass", 0.52f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/osmium", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/refined_obsidian", 0.53f, 0.79f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/refined_glowstone", 0.54f, 0.79f, 1.44f, IHeatEntity.CONDUCTIVITY_EMERALD);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/bronze", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/zinc", 0.51f, 0.77f, 1.41f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/aluminum",0.50f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/steel", 0.50f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/invar", 0.50f, 0.79f, 1.43f, IHeatEntity.CONDUCTIVITY_IRON);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/tin", 0.50f, 0.73f, 1.38f, IHeatEntity.CONDUCTIVITY_SILVER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/silver", 0.51f, 0.79f, 1.43f, IHeatEntity.CONDUCTIVITY_SILVER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/signalum", 0.51f, 0.75f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/lumium", 0.51f, 0.79f, 1.45f, IHeatEntity.CONDUCTIVITY_SILVER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/lead", 0.75f, 0.75f, 1.75f, IHeatEntity.CONDUCTIVITY_SILVER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/electrum", 0.53f, 0.82f, 1.47f, 2.2f); // Between gold and emerald
+        ModeratorsRegistry.registerSolid("c:storage_blocks/platinum", 0.57f, 0.86f, 1.58f, IHeatEntity.CONDUCTIVITY_EMERALD);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/enderium", 0.60f, 0.88f, 1.60f, IHeatEntity.CONDUCTIVITY_DIAMOND);
         //blockTitanium
-        //blockDraconium
-        //blockDraconiumAwakened
-        ModeratorsRegistry.registerSolid("forge:storage_blocks/graphite", 0.10f, 0.50f, 2.00f, IHeatEntity.CONDUCTIVITY_GOLD);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/draconium", 0.59f, 0.88f, 1.60f, 3.3f);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/draconium_awakened", 0.76f, 0.88f, 1.78f, 4.8f);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/graphite", 0.10f, 0.50f, 2.00f, IHeatEntity.CONDUCTIVITY_GOLD);
+
+        // Thermal Extra
+        ModeratorsRegistry.registerSolid("c:storage_blocks/dragonsteel", 0.55f, 0.81f, 1.46f, IHeatEntity.CONDUCTIVITY_SILVER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/twinite", 0.50f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_COPPER);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/shellite", 0.52f, 0.78f, 1.42f, IHeatEntity.CONDUCTIVITY_GOLD);
+
+        // allthemodium
+        ModeratorsRegistry.registerSolid("c:storage_blocks/allthemodium", 0.697f, 0.942f, 3.84f, 3.65f);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/vibranium", 0.24f, 0.81f, 7.47f, 4.38f);
+        ModeratorsRegistry.registerSolid("c:storage_blocks/unobtainium", 0.972f, 0.91f, 3.074f, IHeatEntity.CONDUCTIVITY_GRAPHENE);
+
         ModeratorsRegistry.registerSolid("minecraft:ice", 0.33f, 0.33f, 1.15f, IHeatEntity.CONDUCTIVITY_WATER);
         ModeratorsRegistry.registerSolid("bigreactors:dry_ice", 0.42f, 0.52f, 1.32f, IHeatEntity.CONDUCTIVITY_WATER);
 
@@ -165,19 +173,27 @@ final class ReactorGameData {
         ModeratorsRegistry.registerFluid("mekanism:ethene", 0.45f, 0.65f, 1.90f, IHeatEntity.CONDUCTIVITY_SILVER); // Etilene
         ModeratorsRegistry.registerFluid("mekanism:flowing_ethene", 0.37f, 0.65f, 1.90f, IHeatEntity.CONDUCTIVITY_SILVER); // Etilene
 
+        // Thermal
+        ModeratorsRegistry.registerFluid("thermal:ender", 0.92f, 0.76f, 2.02f, IHeatEntity.CONDUCTIVITY_GOLD); // Resonant Ender
+        ModeratorsRegistry.registerFluid("thermal:ender_flowing", 0.90f, 0.75f, 2.00f, IHeatEntity.CONDUCTIVITY_GOLD);
+        ModeratorsRegistry.registerFluid("thermal:redstone", 0.77f, 0.56f, 1.61f, IHeatEntity.CONDUCTIVITY_EMERALD); // Destabilized Redstone
+        ModeratorsRegistry.registerFluid("thermal:redstone_flowing", 0.75f, 0.55f, 1.60f, IHeatEntity.CONDUCTIVITY_EMERALD);
+
+        // allthemodium
+        ModeratorsRegistry.registerFluid("allthemodium:molten_allthemodium", 0.697f, 0.942f, 3.84f, 3.65f);
+        ModeratorsRegistry.registerFluid("allthemodium:molten_vibranium", 0.24f, 0.81f, 7.47f, 4.38f);
+        ModeratorsRegistry.registerFluid("allthemodium:molten_unobtainium", 0.972f, 0.91f, 3.074f, IHeatEntity.CONDUCTIVITY_GRAPHENE);
+
         /*
 
-        ReactorInterior.registerFluid("redstone", 0.75f, 0.55f, 1.60f, IHeatEntity.conductivityEmerald); // Thermal Foundation Destabilized Redstone
         ReactorInterior.registerFluid("liquidredstone", 0.65f, 0.45f, 1.50f, IHeatEntity.conductivityEmerald); // Substratum Liquid Redstone (toned down because a bit cheap on the crafting side)
 
         ReactorInterior.registerFluid("fluidtesla", 0.75f, 0.55f, 1.60f, IHeatEntity.conductivityEmerald); // Modularity
 
-        ReactorInterior.registerFluid("glowstone", 0.20f, 0.60f, 1.75f, IHeatEntity.conductivityCopper); // Thermal Foundation Energised Glowstone
         ReactorInterior.registerFluid("liquidglowstone", 0.18f, 0.50f, 1.55f, IHeatEntity.conductivityCopper); // Substratum Liquid Glowstone (toned down because a bit cheap on the crafting side)
 
         ReactorInterior.registerFluid("cryotheum", 0.66f, 0.95f, 6.00f, IHeatEntity.conductivityDiamond); // Thermal Foundation Gelid Cryotheum: an amazing moderator!
 
-        ReactorInterior.registerFluid("ender", 0.90f, 0.75f, 2.00f, IHeatEntity.conductivityGold); // Thermal Foundation Resonant Ender
         ReactorInterior.registerFluid("liquidenderpearl", 0.75f, 0.60f, 1.80f, IHeatEntity.conductivityGold); // Substratum Liquid Ender Pearl (toned down because a bit cheap on the crafting side)
 
         ReactorInterior.registerFluid("pyrotheum", 0.66f, 0.90f, 1.00f, IHeatEntity.conductivityIron); // Thermal Foundation Blazing Pyrotheum
@@ -196,8 +212,6 @@ final class ReactorGameData {
 //        ReactorInterior.registerBlock("blockElectrumFlux", 0.54f, 0.83f, 1.48f, 2.4f); // Between gold and emerald
 //        ReactorInterior.registerBlock("blockShiny", 0.57f, 0.86f, 1.58f, IHeatEntity.conductivityEmerald); // Thermal Foundation Shiny block
 //        ReactorInterior.registerBlock("blockTitanium", 0.58f, 0.87f, 1.59f, 2.7f); // Mariculture
-//        ReactorInterior.registerBlock("blockDraconium", 0.59f, 0.88f, 1.60f, 3.3f);
-//        ReactorInterior.registerBlock("blockDraconiumAwakened", 0.76f, 0.88f, 1.78f, 4.8f);
 //            ReactorInterior.registerBlock("blockMithril", 0.53f, 0.81f, 1.45f, IHeatEntity.conductivitySilver);
 //            ReactorInterior.registerBlock("blockOrichalcum", 0.52f, 0.83f, 1.46f, 1.7f);    // Between silver and gold
 //            ReactorInterior.registerBlock("blockQuicksilver", 0.53f, 0.84f, 1.48f, IHeatEntity.conductivityGold);
@@ -236,20 +250,16 @@ final class ReactorGameData {
                 hardnessDivisor, fissionEventsPerFuelUnit, fuelUnitsPerFissionEvent, reactant.getLangKey());
     }
 
-    private static void registerIngotReactantMapping(final Reactants reactant, final ITag.INamedTag<Item> tag, final int ingotsCount) {
-        registerIngotReactantMapping(reactant, tag.getName(), ingotsCount);
+    private static void registerIngotReactantMapping(final Reactants reactant, final TagKey<Item> tag, final int ingotsCount) {
+        ReactantMappingsRegistry.registerSolid(reactant.getReactantName(), ingotsCount * ReactantMappingsRegistry.STANDARD_SOLID_REACTANT_AMOUNT, tag);
     }
 
     private static void registerIngotReactantMapping(final Reactants reactant, final String itemTagId, final int ingotsCount) {
-        registerIngotReactantMapping(reactant, new ResourceLocation(itemTagId), ingotsCount);
-    }
-
-    private static void registerIngotReactantMapping(final Reactants reactant, final ResourceLocation itemTagId, final int ingotsCount) {
         ReactantMappingsRegistry.registerSolid(reactant.getReactantName(), ingotsCount * ReactantMappingsRegistry.STANDARD_SOLID_REACTANT_AMOUNT, itemTagId);
     }
 
-    private static void registerFluidReactantMapping(final Reactants reactant, final ITag.INamedTag<Fluid> tag) {
-        ReactantMappingsRegistry.registerFluid(reactant.getReactantName(), tag.getName());
+    private static void registerFluidReactantMapping(final Reactants reactant, final TagKey<Fluid> tag) {
+        ReactantMappingsRegistry.registerFluid(reactant.getReactantName(), tag);
     }
 
     //endregion

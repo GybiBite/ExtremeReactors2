@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:repeater"
+    },
+    "2": {
+      "tag": "c:storage_blocks/redstone"
+    },
+    "3": {
+      "tag": "c:gems/diamond"
+    },
+    "C": {
+      "item": "bigreactors:fluidizercasing"
+    }
+  },
+  "pattern": [
+    "C2C",
+    "313",
+    "C2C"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:fluidizerpowerport"
+  }
+}

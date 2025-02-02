@@ -29,8 +29,12 @@ import it.zerono.mods.extremereactors.api.reactor.ReactantsRegistry;
 import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.data.nbt.ISyncableEntity;
 import it.zerono.mods.zerocore.lib.data.stack.IStackAdapter;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 
 import java.util.List;
 import java.util.Optional;
@@ -61,17 +65,36 @@ public class ReactantStack
         this(other._reactant, other._amount);
     }
 
-    public ReactantStack(final IMapping<ResourceLocation, Reactant> mapping, final int itemCount) {
+    public ReactantStack(final IMapping<TagKey<Item>, Reactant> mapping, final int itemCount) {
         this(mapping.getProduct(), mapping.getProductAmount(itemCount));
     }
 
-    public static ReactantStack createFrom(final CompoundNBT data) {
+    public static ReactantStack createFrom(final FriendlyByteBuf data) {
 
-        final ReactantStack stack = new ReactantStack();
+        if (!data.readBoolean()) {
+            return ReactantStack.EMPTY;
+        }
 
-        stack.syncDataFrom(data, SyncReason.FullSync);
+        final int amount = data.readInt();
+        final String name = data.readUtf(1024);
 
-        return stack.isEmpty() ? ReactantStack.EMPTY : stack;
+        return ReactantsRegistry.get(name)
+                .map(reactant -> new ReactantStack(reactant, amount))
+                .orElse(ReactantStack.EMPTY);
+    }
+
+    public void writeTo(final FriendlyByteBuf data) {
+
+        if (this.isEmpty()) {
+
+            data.writeBoolean(false);
+
+        } else {
+
+            data.writeBoolean(true);
+            data.writeInt(this._amount);
+            data.writeUtf(this._reactant.getName());
+        }
     }
 
     public static boolean areIdentical(final ReactantStack stack1, final ReactantStack stack2) {
@@ -79,7 +102,7 @@ public class ReactantStack
     }
 
     /**
-     * @return true if this stack does not contains any units of Reactant
+     * @return true if this stack does not contain any units of Reactant
      */
     public boolean isEmpty() {
 
@@ -132,6 +155,10 @@ public class ReactantStack
         return this.contains(ReactantType.Waste);
     }
 
+    public ReactantStack copyWithAmount(int amount) {
+        return new ReactantStack(this._reactant, amount);
+    }
+
     //region ISyncableEntity
 
     /**
@@ -141,7 +168,7 @@ public class ReactantStack
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(final CompoundNBT data, final SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         if (data.contains("rstack_name")) {
 
@@ -177,14 +204,14 @@ public class ReactantStack
     }
 
     /**
-     * Sync the entity data to the given {@link CompoundNBT}
+     * Sync the entity data to the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to write to
+     * @param data       the {@link CompoundTag} to write to
      * @param syncReason the reason why the synchronization is necessary
-     * @return the {@link CompoundNBT} the data was written to (usually {@code data})
+     * @return the {@link CompoundTag} the data was written to (usually {@code data})
      */
     @Override
-    public CompoundNBT syncDataTo(final CompoundNBT data, final SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         if (!this.isEmpty()) {
 
@@ -309,17 +336,27 @@ public class ReactantStack
             }
 
             @Override
-            public ReactantStack readFrom(final CompoundNBT data) {
+            public ReactantStack deserialize(HolderLookup.Provider registries, Tag input) {
 
-                final ReactantStack stack = new ReactantStack();
+                if (input instanceof CompoundTag compound) {
 
-                stack.syncDataFrom(data, SyncReason.FullSync);
-                return stack;
+                    final ReactantStack stack = new ReactantStack();
+
+                    stack.syncDataFrom(compound, registries, SyncReason.FullSync);
+                    return stack;
+                }
+
+                throw new IllegalArgumentException("Input must be a CompoundTag instance");
             }
 
             @Override
-            public CompoundNBT writeTo(final ReactantStack stack, final CompoundNBT data) {
-                return stack.syncDataTo(data, SyncReason.FullSync);
+            public Tag serialize(HolderLookup.Provider registries, ReactantStack stack, Tag output) {
+
+                if (output instanceof CompoundTag tag) {
+                    return stack.syncDataTo(tag, registries, SyncReason.FullSync);
+                }
+
+                throw new IllegalArgumentException("Output must be a CompoundTag instance");
             }
 
             @Override

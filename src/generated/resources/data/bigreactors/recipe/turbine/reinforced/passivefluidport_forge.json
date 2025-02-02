@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": {
+      "item": "minecraft:lava_bucket"
+    },
+    "C": {
+      "item": "bigreactors:reinforced_turbinecasing"
+    },
+    "S": {
+      "item": "minecraft:water_bucket"
+    }
+  },
+  "pattern": [
+    "CSC",
+    "SBS",
+    "CSC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reinforced_turbinefluidport_forge_passive"
+  }
+}

@@ -34,6 +34,7 @@ import it.zerono.mods.zerocore.lib.energy.EnergyHelper;
 import it.zerono.mods.zerocore.lib.energy.EnergySystem;
 import it.zerono.mods.zerocore.lib.energy.IWideEnergyStorage;
 import it.zerono.mods.zerocore.lib.energy.handler.WideEnergyStoragePolicyWrapper;
+import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
 import it.zerono.mods.zerocore.lib.fluid.FluidTank;
 import it.zerono.mods.zerocore.lib.fluid.handler.FluidHandlerPolicyWrapper;
 import it.zerono.mods.zerocore.lib.item.inventory.ItemStackHolder;
@@ -51,21 +52,21 @@ import it.zerono.mods.zerocore.lib.recipe.ingredient.RecipeIngredientSourceWrapp
 import it.zerono.mods.zerocore.lib.recipe.result.IRecipeResultTarget;
 import it.zerono.mods.zerocore.lib.recipe.result.ItemStackRecipeResult;
 import it.zerono.mods.zerocore.lib.recipe.result.RecipeResultTargetWrapper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.profiler.IProfiler;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fluids.FluidAttributes;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemHandlerHelper;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -77,10 +78,10 @@ public class MultiblockReprocessor
     public static final int TICK_ENERGY_COST = 25; // 25 FE per processed tick
     public static final int INTERNAL_HEIGHT = 5;
 
-    public static final int FLUID_CAPACITY = INTERNAL_HEIGHT * FluidAttributes.BUCKET_VOLUME;
+    public static final int FLUID_CAPACITY = INTERNAL_HEIGHT * FluidHelper.BUCKET_VOLUME;
     public static final int ENERGY_CAPACITY = INTERNAL_HEIGHT * 1000;
 
-    public MultiblockReprocessor(final World world) {
+    public MultiblockReprocessor(final Level world) {
 
         super(world);
 
@@ -112,11 +113,11 @@ public class MultiblockReprocessor
     }
 
     public boolean isValidIngredient(final ItemStack stack) {
-        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.findFirst(recipe -> recipe.matchIgnoreAmount(stack)).isPresent();
+        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.get().findFirst(recipe -> recipe.matchIgnoreAmount(stack)).isPresent();
     }
 
     public boolean isValidIngredient(final FluidStack stack) {
-        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.findFirst(recipe -> recipe.matchIgnoreAmount(stack)).isPresent();
+        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.get().findFirst(recipe -> recipe.matchIgnoreAmount(stack)).isPresent();
     }
 
     public IItemHandlerModifiable getItemHandler(final IoDirection direction) {
@@ -216,17 +217,17 @@ public class MultiblockReprocessor
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
 
-        this.syncBooleanElementFrom("active", data, b -> this._active = b);
-        this.syncDataElementFrom("out", data, this._outputInventory);
-        this.syncDataElementFrom("waste", data, this._wasteInventory);
-        this.syncChildDataEntityFrom(this._fluidTank, "fluid", data, syncReason);
-        this.syncChildDataEntityFrom(this._energyBuffer, "energy", data, syncReason);
+        this.syncBooleanElementFrom("active", data, registries, b -> this._active = b);
+        this.syncDataElementFrom("out", data, registries, this._outputInventory);
+        this.syncDataElementFrom("waste", data, registries, this._wasteInventory);
+        this.syncChildDataEntityFrom(this._fluidTank, "fluid", data, registries, syncReason);
+        this.syncChildDataEntityFrom(this._energyBuffer, "energy", data, registries, syncReason);
         this._recipeHolder.refresh();
-        this.syncChildDataEntityFrom(this._recipeHolder, "recipe", data, syncReason);
+        this.syncChildDataEntityFrom(this._recipeHolder, "recipe", data, registries, syncReason);
     }
 
     /**
@@ -236,16 +237,16 @@ public class MultiblockReprocessor
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
 
-        this.syncBooleanElementTo("active", data, this.isMachineActive());
-        this.syncDataElementTo("out", data, this._outputInventory);
-        this.syncDataElementTo("waste", data, this._wasteInventory);
-        this.syncChildDataEntityTo(this._fluidTank, "fluid", data, syncReason);
-        this.syncChildDataEntityTo(this._energyBuffer, "energy", data, syncReason);
-        this.syncChildDataEntityTo(this._recipeHolder, "recipe", data, syncReason);
+        this.syncBooleanElementTo("active", data, registries, this.isMachineActive());
+        this.syncDataElementTo("out", data, registries, this._outputInventory);
+        this.syncDataElementTo("waste", data, registries, this._wasteInventory);
+        this.syncChildDataEntityTo(this._fluidTank, "fluid", data, registries, syncReason);
+        this.syncChildDataEntityTo(this._energyBuffer, "energy", data, registries, syncReason);
+        this.syncChildDataEntityTo(this._recipeHolder, "recipe", data, registries, syncReason);
 
         return data;
     }
@@ -281,7 +282,7 @@ public class MultiblockReprocessor
     @Override
     protected boolean updateServer() {
 
-        final IProfiler profiler = this.getWorld().getProfiler();
+        final ProfilerFiller profiler = this.getWorld().getProfiler();
         boolean updated = false;
 
         profiler.push("Extreme Reactors|Reprocessor update"); // main section
@@ -445,7 +446,9 @@ public class MultiblockReprocessor
 
         this._collector = null;
 
-        this.markMultiblockForRenderUpdate();
+        if (this.calledByLogicalClient()) {
+            this.markMultiblockForRenderUpdate();
+        }
     }
 
     /**
@@ -561,27 +564,27 @@ public class MultiblockReprocessor
     }
 
     @Override
-    protected boolean isBlockGoodForFrame(World world, int x, int y, int z, IMultiblockValidator validatorCallback) {
+    protected boolean isBlockGoodForFrame(Level world, int x, int y, int z, IMultiblockValidator validatorCallback) {
         return notifyInvalidBlock(world, x, y, z, validatorCallback);
     }
 
     @Override
-    protected boolean isBlockGoodForTop(World world, int x, int y, int z, IMultiblockValidator validatorCallback) {
+    protected boolean isBlockGoodForTop(Level world, int x, int y, int z, IMultiblockValidator validatorCallback) {
         return notifyInvalidBlock(world, x, y, z, validatorCallback);
     }
 
     @Override
-    protected boolean isBlockGoodForBottom(World world, int x, int y, int z, IMultiblockValidator validatorCallback) {
+    protected boolean isBlockGoodForBottom(Level world, int x, int y, int z, IMultiblockValidator validatorCallback) {
         return notifyInvalidBlock(world, x, y, z, validatorCallback);
     }
 
     @Override
-    protected boolean isBlockGoodForSides(World world, int x, int y, int z, IMultiblockValidator validatorCallback) {
+    protected boolean isBlockGoodForSides(Level world, int x, int y, int z, IMultiblockValidator validatorCallback) {
         return notifyInvalidBlock(world, x, y, z, validatorCallback);
     }
 
     @Override
-    protected boolean isBlockGoodForInterior(World world, int x, int y, int z, IMultiblockValidator validatorCallback) {
+    protected boolean isBlockGoodForInterior(Level world, int x, int y, int z, IMultiblockValidator validatorCallback) {
 
         if (world.getBlockState(new BlockPos(x, y, z)).isAir()) {
             return true;
@@ -600,7 +603,7 @@ public class MultiblockReprocessor
 
         this._ingredientsChanged = false;
 
-        return Content.Recipes.REPROCESSOR_RECIPE_TYPE
+        return Content.Recipes.REPROCESSOR_RECIPE_TYPE.get()
                 .findFirst(recipe -> recipe.test(this._wasteInventory.getStackInSlot(0), this._fluidTank.getFluidInTank(0)))
                 .map(recipe -> new ReprocessorHeldRecipe(recipe, holder, this._wasteIngredientSource,
                         this._fluidIngredientSource, this._outputTarget))
@@ -609,6 +612,7 @@ public class MultiblockReprocessor
 
     private boolean canProcess(final ReprocessorRecipe recipe) {
         return this.isMachineActive() &&
+                this.areRecipeIngredientsAvailable() &&
                 this._energyBuffer.getEnergyStored() >= TICK_ENERGY_COST &&
                 this._outputTarget.countStorableResults(recipe.getResult()) > 0;
     }
@@ -637,7 +641,7 @@ public class MultiblockReprocessor
 
     //endregion
 
-    private static boolean notifyInvalidBlock(final World world, final int x, final int y, final int z,
+    private static boolean notifyInvalidBlock(final Level world, final int x, final int y, final int z,
                                               final IMultiblockValidator validatorCallback) {
 
         final BlockPos position = new BlockPos(x, y, z);
@@ -653,6 +657,19 @@ public class MultiblockReprocessor
 //            this._collector.onRecipeChanged(this._recipeHolder.getHeldRecipe().map(IHeldRecipe::getRecipe).orElse(null));
             this._collector.onRecipeChanged(heldRecipe);
         }
+    }
+
+    private boolean areRecipeIngredientsAvailable() {
+
+        return this._recipeHolder.getHeldRecipe()
+                .map(IHeldRecipe::getRecipe)
+                .map(this::areRecipeIngredientsAvailable)
+                .orElse(false);
+    }
+
+    private boolean areRecipeIngredientsAvailable(ReprocessorRecipe recipe) {
+        return recipe.getIngredient1().test(this._wasteInventory.getStackInSlot(0)) &&
+                recipe.getIngredient2().test(this._fluidTank.getFluid());
     }
 
     private final ItemStackHandler _outputInventory;

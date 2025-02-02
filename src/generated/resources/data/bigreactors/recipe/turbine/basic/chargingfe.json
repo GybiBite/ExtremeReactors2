@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:glowstone_dust"
+    },
+    "2": {
+      "item": "minecraft:redstone"
+    },
+    "G": {
+      "tag": "c:glass_blocks"
+    },
+    "T": {
+      "item": "bigreactors:basic_turbinepowertapfe_active"
+    }
+  },
+  "pattern": [
+    "212",
+    "GTG",
+    "212"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:basic_turbinechargingportfe"
+  }
+}

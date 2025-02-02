@@ -18,26 +18,28 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.render.rotor;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.RotorBladeState;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.common.util.NonNullConsumer;
+import net.minecraft.core.Direction;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3fc;
+
+import java.util.function.Consumer;
 
 @OnlyIn(Dist.CLIENT)
 public class BladeSpan
-        implements NonNullConsumer<MatrixStack> {
+        implements Consumer<@NotNull PoseStack> {
 
     public final RotorBladeState State;
     public final short Length;
     public final Direction Direction;
-    public final IModelData BladeModelData;
-    public final Matrix4f Translation;
+    public final ModelData BladeModelData;
+    public final Vector3fc Translation;
 
     public static BladeSpan from(final RotorBladeState state, final short length, final Direction direction) {
         return s_cache.computeIfAbsent(key(state, length, direction), k -> new BladeSpan(state, length, direction));
@@ -51,11 +53,11 @@ public class BladeSpan
         return (stateValue << 24) | (directionValue << 16) | length;
     }
 
-    //region NonNullConsumer<MatrixStack>
+    //region NonNullConsumer<PoseStack>
 
     @Override
-    public void accept(final MatrixStack stack) {
-        stack.last().pose().multiply(this.Translation);
+    public void accept(final PoseStack stack) {
+        stack.last().pose().translate(this.Translation);
     }
 
     //endregion
@@ -93,7 +95,7 @@ public class BladeSpan
         this.Length = length;
         this.Direction = direction;
         this.BladeModelData = ComponentModelData.from(state);
-        this.Translation = CachedTranslations.getFor(direction);
+        this.Translation = direction.step();
     }
 
     private static final Int2ObjectMap<BladeSpan> s_cache = new Int2ObjectOpenHashMap<>(8);

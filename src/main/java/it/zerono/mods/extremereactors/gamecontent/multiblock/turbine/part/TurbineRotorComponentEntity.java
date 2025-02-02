@@ -20,6 +20,7 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.TurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.RotorBladeState;
@@ -32,13 +33,13 @@ import it.zerono.mods.zerocore.lib.block.INeighborChangeListener;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -50,12 +51,14 @@ public class TurbineRotorComponentEntity
         extends AbstractTurbineEntity
         implements INeighborChangeListener {
 
-    public static TurbineRotorComponentEntity shaft() {
-        return new TurbineRotorComponentEntity(TurbinePartType.RotorShaft, Content.TileEntityTypes.TURBINE_ROTORSHAFT.get());
+    public static TurbineRotorComponentEntity shaft(final BlockPos position, final BlockState blockState) {
+        return new TurbineRotorComponentEntity(TurbinePartType.RotorShaft, Content.TileEntityTypes.TURBINE_ROTORSHAFT.get(),
+                position, blockState);
     }
 
-    public static TurbineRotorComponentEntity blade() {
-        return new TurbineRotorComponentEntity(TurbinePartType.RotorBlade, Content.TileEntityTypes.TURBINE_ROTORBLADE.get());
+    public static TurbineRotorComponentEntity blade(final BlockPos position, final BlockState blockState) {
+        return new TurbineRotorComponentEntity(TurbinePartType.RotorBlade, Content.TileEntityTypes.TURBINE_ROTORBLADE.get(),
+                position, blockState);
     }
 
     public static RotorShaftState computeShaftState(final TurbineRotorComponentEntity shaft) {
@@ -111,7 +114,7 @@ public class TurbineRotorComponentEntity
      */
     @Override
     public void onMachineActivated() {
-        this.markForRenderUpdate();
+        this.callOnLogicalClient(this::markForRenderUpdate);
     }
 
     /**
@@ -120,7 +123,7 @@ public class TurbineRotorComponentEntity
      */
     @Override
     public void onMachineDeactivated() {
-        this.markForRenderUpdate();
+        this.callOnLogicalClient(this::markForRenderUpdate);
     }
 
     //endregion
@@ -129,26 +132,24 @@ public class TurbineRotorComponentEntity
     @Override
     protected int getUpdatedModelVariantIndex() {
 
+        // add 1 to the variant index because now the default model sit at index 0, so skip it
+
         final boolean assembled = this.isMachineAssembled();
 
         if (assembled) {
-            return 0; // HIDDEN
+            return 1; // HIDDEN
         }
 
-        return this.getPartType()
-                .map(type -> {
+        if (this.getBlockState().getBlock() instanceof TurbineRotorComponentBlock rotorComponent) {
+            return 1 + switch (rotorComponent.getComponentType()) {
 
-                    switch (type) {
-                        case RotorShaft:
-                            return computeShaftState(this, false).ordinal();
+                case Shaft -> computeShaftState(this, false).ordinal();
+                case Blade -> computeBladeState(this, false).ordinal();
+                default -> 0;
+            };
+        }
 
-                        case RotorBlade:
-                            return computeBladeState(this, false).ordinal();
-
-                        default:
-                            return 0;
-                    }
-                }).orElse(0);
+        return 1;
     }
 
     //endregion
@@ -164,13 +165,14 @@ public class TurbineRotorComponentEntity
     //endregion
     //region internals
 
-    protected TurbineRotorComponentEntity(final TurbinePartType componentType, final TileEntityType<?> type) {
+    protected TurbineRotorComponentEntity(final TurbinePartType componentType, final BlockEntityType<?> type,
+                                          final BlockPos position, final BlockState blockState) {
 
-        super(type);
+        super(type, position, blockState);
         this._componentType = componentType;
     }
 
-    private static void updateNeighborsRenderState(final World world, final BlockPos position) {
+    private static void updateNeighborsRenderState(final Level world, final BlockPos position) {
 
         WorldHelper.getTilesFrom(world, WorldHelper.getNeighboringPositions(position))
                 .filter(te -> te instanceof TurbineRotorComponentEntity)
@@ -189,7 +191,7 @@ public class TurbineRotorComponentEntity
 
     private static RotorShaftState computeShaftStateInternal(final TurbineRotorComponentEntity shaft) {
 
-        final World world = shaft.getPartWorldOrFail();
+        final Level world = shaft.getPartWorldOrFail();
         final BlockPos shaftPosition = shaft.getWorldPosition();
 
         final Map<Direction, BlockState> neighborsStates = Arrays.stream(CodeHelper.DIRECTIONS)
@@ -230,7 +232,7 @@ public class TurbineRotorComponentEntity
 
     private static RotorBladeState computeBladeStateInternal(final TurbineRotorComponentEntity blade) {
 
-        final World world = blade.getPartWorldOrFail();
+        final Level world = blade.getPartWorldOrFail();
         final BlockPos bladePosition = blade.getWorldPosition();
 
         final Map<Direction, BlockState> neighborsStates = Arrays.stream(CodeHelper.DIRECTIONS)
@@ -274,7 +276,7 @@ public class TurbineRotorComponentEntity
         return RotorBladeState.getDefault();
     }
 
-    private static RotorBladeState computeBladeStateFromBladesChain(final World world, BlockPos startPosition,
+    private static RotorBladeState computeBladeStateFromBladesChain(final Level world, BlockPos startPosition,
                                                                     final Direction direction, final Block bladeBlock,
                                                                     final Block shaftBlock) {
 
@@ -337,7 +339,7 @@ public class TurbineRotorComponentEntity
         }
     }
 
-    private final TurbinePartType _componentType;
+    private final ITurbinePartType _componentType;
 
     private static final Map<Direction.Axis, Function<Set<Direction.Axis>, RotorShaftState>> SHAFT_STATE_MAP;
 

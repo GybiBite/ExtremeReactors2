@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "bigreactors:reactants",
+  "ingredients": [
+    {
+      "item": "bigreactors:graphite_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "id": "bigreactors:graphite_ingot"
+  }
+}

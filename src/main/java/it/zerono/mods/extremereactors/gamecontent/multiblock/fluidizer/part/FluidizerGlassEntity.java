@@ -22,12 +22,14 @@ import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.model.data.ModelTransformers;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class FluidizerGlassEntity
         extends AbstractFluidizerEntity {
 
-    public FluidizerGlassEntity() {
-        super(Content.TileEntityTypes.FLUIDIZER_GLASS.get());
+    public FluidizerGlassEntity(final BlockPos position, final BlockState blockState) {
+        super(Content.TileEntityTypes.FLUIDIZER_GLASS.get(), position, blockState);
     }
 
     //region client render support

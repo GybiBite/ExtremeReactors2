@@ -20,89 +20,81 @@ package it.zerono.mods.extremereactors;
 
 import it.zerono.mods.extremereactors.api.internal.modpack.wrapper.ApiWrapper;
 import it.zerono.mods.extremereactors.config.Config;
-import it.zerono.mods.extremereactors.config.conditions.ConfigCondition;
 import it.zerono.mods.extremereactors.gamecontent.Content;
-import it.zerono.mods.extremereactors.gamecontent.WorldGen;
 import it.zerono.mods.extremereactors.gamecontent.command.ExtremeReactorsCommand;
+import it.zerono.mods.extremereactors.gamecontent.mekanism.IMekanismService;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.network.UpdateFluidizerFluidStatus;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.network.UpdateClientsFuelRodsLayout;
+import it.zerono.mods.extremereactors.proxy.IForgeProxy;
 import it.zerono.mods.extremereactors.proxy.IProxy;
-import it.zerono.mods.extremereactors.proxy.ProxySafeReferent;
-import it.zerono.mods.zerocore.lib.init.IModInitializationHandler;
-import it.zerono.mods.zerocore.lib.network.IModMessage;
+import it.zerono.mods.extremereactors.proxy.ServerProxy;
+import it.zerono.mods.zerocore.base.multiblock.part.io.fluid.IFluidPort;
+import it.zerono.mods.zerocore.base.multiblock.part.io.power.IPowerPort;
+import it.zerono.mods.zerocore.lib.compat.SidedDependencyServiceLoader;
+import it.zerono.mods.zerocore.lib.compat.computer.IComputerCraftService;
+import it.zerono.mods.zerocore.lib.data.ResourceLocationBuilder;
 import it.zerono.mods.zerocore.lib.network.NetworkHandler;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.InterModComms;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.InterModProcessEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import org.jetbrains.annotations.Nullable;
 
 @Mod(value = ExtremeReactors.MOD_ID)
-public class ExtremeReactors implements IModInitializationHandler {
+public class ExtremeReactors {
 
     public static final String MOD_ID = "bigreactors";
     public static final String MOD_NAME = "Extreme Reactors 2";
+    public static ResourceLocationBuilder ROOT_LOCATION = ResourceLocationBuilder.of(MOD_ID);
 
     public static ExtremeReactors getInstance() {
         return s_instance;
     }
 
     public static IProxy getProxy() {
-        return s_proxy;
+        return s_proxy.get();
     }
 
-    public static ResourceLocation newID(final String path) {
-        return new ResourceLocation(MOD_ID, path);
-    }
-
-    public ExtremeReactors() {
+    public ExtremeReactors(IEventBus modBus, ModContainer container, Dist distribution) {
 
         s_instance = this;
-        this._network = new NetworkHandler(newID("network"), "1");
+        this._network = new NetworkHandler();
 
-        Config.initialize();
-        Content.initialize();
+        s_proxy = new SidedDependencyServiceLoader<>(IProxy.class, ServerProxy::new);
+        if (s_proxy.get() instanceof IForgeProxy forgeProxy) {
+            forgeProxy.initialize(modBus);
+        }
 
-        s_proxy = DistExecutor.safeRunForDist(() -> ProxySafeReferent::client, () -> ProxySafeReferent::server);
+        Config.initialize(container);
+        Content.initialize(modBus);
 
-        final IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modBus.addListener(ExtremeReactors::onInterModProcess);
+        modBus.addListener(ExtremeReactors::onRegisterCapabilities);
+        modBus.addListener(ExtremeReactors::onRegisterPackets);
 
-        modBus.addListener(this::onCommonInit);
-        modBus.addListener(this::onInterModProcess);
-        modBus.addGenericListener(IRecipeSerializer.class, this::onRegisterRecipeSerializer);
-
-        MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
-
-        WorldGen.initialize();
+        NeoForge.EVENT_BUS.addListener(ExtremeReactors::onRegisterCommands);
     }
 
-    /**
-     * Called on both the physical client and the physical server to perform common initialization tasks
-     * @param event the event
-     */
-    @Override
-    public void onCommonInit(FMLCommonSetupEvent event) {
-        this._network.registerMessage(UpdateClientsFuelRodsLayout.class, UpdateClientsFuelRodsLayout::new);
+    public void sendPacket(CustomPacketPayload packet, ServerLevel level, BlockPos center, int radius) {
+        this._network.sendToAllAround(center, radius, level, null, packet);
     }
 
-    /**
-     * Retrieve and process inter-mods messages and process them
-     * <p>
-     * See {@link InterModComms}
-     *
-     * @param event the event
-     */
-    @Override
-    public void onInterModProcess(InterModProcessEvent event) {
+    //region internals
+
+    private static void onInterModProcess(InterModProcessEvent event) {
 
         // API messages
 
@@ -136,26 +128,108 @@ public class ExtremeReactors implements IModInitializationHandler {
         ApiWrapper.processFile();
     }
 
-    public void onRegisterRecipeSerializer(final RegistryEvent.Register<IRecipeSerializer<?>> event) {
-        CraftingHelper.register(ConfigCondition.Serializer.INSTANCE);
+    private static void imcProcessAPIMessages(InterModProcessEvent event, String method) {
+        event.getIMCStream((method::equals)).map(imc -> (Runnable) imc.messageSupplier().get()).forEach(Runnable::run);
     }
 
-    public <T extends IModMessage> void sendPacket(final T packet, final World world, final BlockPos center, final int radius) {
-        this._network.sendToAllAround(packet, center.getX(), center.getY(), center.getZ(), radius, world.dimension());
+    private static void onRegisterCommands(RegisterCommandsEvent event) {
+        ExtremeReactorsCommand.register(event.getDispatcher(), event.getBuildContext());
     }
 
-    //region internals
+    private static void onRegisterPackets(RegisterPayloadHandlersEvent event) {
 
-    private void imcProcessAPIMessages(InterModProcessEvent event, String method) {
-        event.getIMCStream((method::equals)).map(imc -> (Runnable) imc.getMessageSupplier().get()).forEach(Runnable::run);
+        final PayloadRegistrar registrar = event.registrar(MOD_ID).versioned("2.0.0");
+
+        registrar.playToClient(UpdateClientsFuelRodsLayout.TYPE, UpdateClientsFuelRodsLayout.STREAM_CODEC,
+                UpdateClientsFuelRodsLayout::handlePacket);
+        registrar.playToClient(UpdateFluidizerFluidStatus.TYPE, UpdateFluidizerFluidStatus.STREAM_CODEC,
+                UpdateFluidizerFluidStatus::handlePacket);
     }
 
-    private void onRegisterCommands(final RegisterCommandsEvent event) {
-        ExtremeReactorsCommand.register(event.getDispatcher());
+    private static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
+
+        // Reactor
+
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, Content.TileEntityTypes.REACTOR_SOLID_ACCESSPORT.get(),
+                (be, context) -> be.getItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.REACTOR_FLUID_ACCESSPORT.get(),
+                (be, context) -> be.getFluidHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.REACTOR_FLUIDPORT_FORGE_ACTIVE.get(),
+                ExtremeReactors::getFluidHandlerCapability);
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.REACTOR_FLUIDPORT_FORGE_PASSIVE.get(),
+                ExtremeReactors::getFluidHandlerCapability);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.REACTOR_POWERTAP_FE_ACTIVE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.REACTOR_POWERTAP_FE_PASSIVE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        IComputerCraftService.SERVICE.get().registerCapabilityProvider(event, Content.TileEntityTypes.REACTOR_COMPUTERPORT.get());
+        IMekanismService.SERVICE.get().registerGasCapabilityProvider(event, Content.TileEntityTypes.REACTOR_FLUIDPORT_MEKANISM_PASSIVE.get());
+
+        // Turbine
+
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.TURBINE_FLUIDPORT_FORGE_ACTIVE.get(),
+                ExtremeReactors::getFluidHandlerCapability);
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.TURBINE_FLUIDPORT_FORGE_PASSIVE.get(),
+                ExtremeReactors::getFluidHandlerCapability);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.TURBINE_POWERTAP_FE_ACTIVE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.TURBINE_POWERTAP_FE_PASSIVE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        IComputerCraftService.SERVICE.get().registerCapabilityProvider(event, Content.TileEntityTypes.TURBINE_COMPUTERPORT.get());
+
+        // Reprocessor
+
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.REPROCESSOR_FLUIDINJECTOR.get(),
+                (be, context) -> be.getHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, Content.TileEntityTypes.REPROCESSOR_WASTEINJECTOR.get(),
+                (be, context) -> be.getHandler());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, Content.TileEntityTypes.REPROCESSOR_OUTPUTPORT.get(),
+                (be, context) -> be.getHandler());
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.REPROCESSOR_POWERPORT.get(),
+                (be, context) -> be.getHandler());
+
+        // Fluidizer
+
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, Content.TileEntityTypes.FLUIDIZER_SOLIDINJECTOR.get(),
+                (be, context) -> be.getItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.FLUIDIZER_FLUIDINJECTOR.get(),
+                (be, context) -> be.getFluidHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, Content.TileEntityTypes.FLUIDIZER_OUTPUTPORT.get(),
+                (be, context) -> be.getHandler());
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.FLUIDIZER_POWERPORT.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+
+        // Energizer
+
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.ENERGIZER_POWERPORT_FE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, Content.TileEntityTypes.ENERGIZER_POWERPORT_FE_ACTIVE.get(),
+                ExtremeReactors::getEnergyStorageCapability);
+        IComputerCraftService.SERVICE.get().registerCapabilityProvider(event, Content.TileEntityTypes.ENERGIZER_COMPUTERPORT.get());
+    }
+
+    @Nullable
+    private static IFluidHandler getFluidHandlerCapability(IFluidPort port, Direction context) {
+
+        if (port.getFluidPortHandler() instanceof IFluidHandler handler) {
+            return handler;
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static IEnergyStorage getEnergyStorageCapability(IPowerPort port, Direction context) {
+
+        if (port.getPowerPortHandler() instanceof IEnergyStorage handler) {
+            return handler;
+        }
+
+        return null;
     }
 
     private static ExtremeReactors s_instance;
-    private static IProxy s_proxy;
+    private static SidedDependencyServiceLoader<IProxy> s_proxy;
     private final NetworkHandler _network;
 
     //endregion

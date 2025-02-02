@@ -19,57 +19,60 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part;
 
 import it.zerono.mods.extremereactors.ExtremeReactors;
-import it.zerono.mods.extremereactors.gamecontent.CommonConstants;
 import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.zerocore.base.BaseHelper;
+import it.zerono.mods.zerocore.base.CommonConstants;
 import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.DebuggableHelper;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
 import it.zerono.mods.zerocore.lib.block.INeighborChangeListener;
+import it.zerono.mods.zerocore.lib.data.component.FluidStackListComponent;
+import it.zerono.mods.zerocore.lib.data.component.IComponentProvider;
 import it.zerono.mods.zerocore.lib.data.nbt.IConditionallySyncableEntity;
 import it.zerono.mods.zerocore.lib.data.stack.IStackHolder;
 import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
 import it.zerono.mods.zerocore.lib.fluid.FluidStackHolder;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.IRecipeIngredientSource;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.RecipeIngredientSourceWrapper;
-import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.common.util.NonNullConsumer;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fml.LogicalSide;
+import it.zerono.mods.zerocore.lib.text.TextHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public class FluidizerFluidInjectorEntity
         extends AbstractFluidizerEntity
-        implements INamedContainerProvider, INeighborChangeListener, IConditionallySyncableEntity {
+        implements MenuProvider, INeighborChangeListener, IConditionallySyncableEntity,
+                    IComponentProvider<FluidStackListComponent> {
 
     public static int MAX_CAPACITY = 8 * 1000;
 
-    public FluidizerFluidInjectorEntity() {
+    public FluidizerFluidInjectorEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.FLUIDIZER_FLUIDINJECTOR.get());
-        this._fluids = new FluidStackHolder(1, ($, stack) -> this.isValidIngredient(stack)).setOnLoadListener(this::onFluidsChanged).setOnContentsChangedListener(this::onFluidsChanged);
+        super(Content.TileEntityTypes.FLUIDIZER_FLUIDINJECTOR.get(), position, blockState);
+        this._fluids = new FluidStackHolder(1, ($, stack) -> this.isValidIngredient(stack))
+                .setOnLoadListener(this::onFluidsChanged)
+                .setOnContentsChangedListener(this::onFluidsChanged);
         this._fluids.setMaxCapacity(MAX_CAPACITY);
-        this._capability = LazyOptional.of(() -> this._fluids);
     }
 
     public IRecipeIngredientSource<FluidStack> asRecipeSource() {
@@ -88,25 +91,23 @@ public class FluidizerFluidInjectorEntity
         return this.evalOnController(c -> c.isValidIngredient(stack), false);
     }
 
-    public static void itemTooltipBuilder(final ItemStack stack, final CompoundNBT data, final @Nullable IBlockReader world,
-                                          final NonNullConsumer<ITextComponent> appender, final boolean isAdvancedTooltip) {
+    public static void itemTooltipBuilder(ItemStack stack, Item.TooltipContext context,
+                                          Consumer<@NotNull Component> appender, TooltipFlag flag) {
 
-        if (data.contains("inv")) {
+        final var component = stack.get(FluidStackListComponent.getComponentType());
 
-            final FluidStackHolder holder = new FluidStackHolder(1);
-            IFormattableTextComponent text;
+        if (null != component) {
 
-            holder.syncDataFrom(data.getCompound("inv"), SyncReason.FullSync);
+            final MutableComponent text;
 
-            if (holder.isEmpty(0)) {
-                text = new TranslationTextComponent("gui.bigreactors.generic.empty");
+            if (component.isEmpty(0)) {
+                text = BaseHelper.emptyValue();
             } else {
-                text = new TranslationTextComponent("gui.bigreactors.reactor.fluidaccessport.item.reactant",
-                        FluidHelper.getFluidName(holder.getFluidInTank(0)), holder.getAmount(0));
+                text = TextHelper.translatable("gui.bigreactors.fluidizer.fluidinjector.component.content",
+                        FluidHelper.getFluidName(component.getStack(0)), component.getAmount(0));
             }
 
-            appender.accept(new TranslationTextComponent("gui.bigreactors.generic.fuel.label")
-                    .append(text.setStyle(CommonConstants.STYLE_TOOLTIP_VALUE)));
+            appender.accept(text.setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
         }
     }
 
@@ -114,7 +115,7 @@ public class FluidizerFluidInjectorEntity
 
     @Override
     protected int getUpdatedModelVariantIndex() {
-        return this.isMachineAssembled() && this.getNeighborCapability().isPresent() ? 1 : 0;
+        return this.isMachineAssembled() && null != this.getNeighborCapability() ? 1 : 0;
     }
 
     //endregion
@@ -146,10 +147,10 @@ public class FluidizerFluidInjectorEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
-        this.syncChildDataEntityFrom(this._fluids, "inv", data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
+        this.syncChildDataEntityFrom(this._fluids, "inv", data, registries, syncReason);
 
         if (syncReason.isFullSync()) {
             this._shouldSync = true;
@@ -157,10 +158,10 @@ public class FluidizerFluidInjectorEntity
     }
 
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
-        this.syncChildDataEntityTo(this._fluids, "inv", data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
+        this.syncChildDataEntityTo(this._fluids, "inv", data, registries, syncReason);
         return data;
     }
 
@@ -188,6 +189,19 @@ public class FluidizerFluidInjectorEntity
     }
 
     //endregion
+    //region IComponentProvider<FluidStackListComponent>
+
+    @Override
+    public FluidStackListComponent createDataComponent() {
+        return this._fluids.createDataComponent();
+    }
+
+    @Override
+    public void mergeComponent(FluidStackListComponent component) {
+        this._fluids.mergeComponent(component);
+    }
+
+    //endregion
     //region IDebuggable
 
     @Override
@@ -198,7 +212,7 @@ public class FluidizerFluidInjectorEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -209,75 +223,67 @@ public class FluidizerFluidInjectorEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
         return null;
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
     //endregion
     //region AbstractModBlockEntity
 
-    /**
-     * Check if the tile entity has a GUI or not
-     * Override in derived classes to return true if your tile entity got a GUI
-     */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
-        return false;
+    protected void applyImplicitComponents(DataComponentInput input) {
+
+        final var component = input.get(FluidStackListComponent.getComponentType());
+
+        if (null != component) {
+            this.mergeComponent(component);
+        }
     }
 
-    //endregion
-    //region TileEntity
-
-    @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        return FLUID_HANDLER_CAPABILITY == cap ? this._capability.cast() : super.getCapability(cap, side);
+    protected void collectImplicitComponents(DataComponentMap.Builder collector) {
+        collector.set(FluidStackListComponent.getComponentType(), this.createDataComponent());
     }
 
-    /**
-     * invalidates a tile entity
-     */
     @Override
-    public void setRemoved() {
+    public ItemStack asStorableStack() {
 
-        super.setRemoved();
-        this._capability.invalidate();
+        final var stack = new ItemStack(this.getBlockType());
+
+        stack.set(FluidStackListComponent.getComponentType(), this.createDataComponent());
+        return stack;
     }
 
     //endregion
     //region internals
 
-    private LazyOptional<IFluidHandler> getNeighborCapability() {
-        return CodeHelper.optionalFlatMap(this.getPartWorld(), this.getOutwardDirection(),
-                        (world, direction) -> WorldHelper.getTile(world, this.getWorldPosition().relative(direction))
-                                .map(te -> te.getCapability(FLUID_HANDLER_CAPABILITY, direction.getOpposite())))
-                .orElse(LazyOptional.empty());
-    }
-
-    private void onFluidsChanged(IStackHolder.ChangeType changeType, int slot) {
-        this.onFluidsChanged();
+    @Nullable
+    private IFluidHandler getNeighborCapability() {
+        return CodeHelper.optionalMap(this.getPartWorld(), this.getOutwardDirection(),
+                        (level, direction) -> level.getCapability(Capabilities.FluidHandler.BLOCK,
+                                this.getWorldPosition().relative(direction), direction.getOpposite()))
+                .orElse(null);
     }
 
     private void onFluidsChanged() {
+        this.onFluidsChanged(IStackHolder.ChangeType.Replaced, 0);
+    }
+
+    private void onFluidsChanged(IStackHolder.ChangeType changeType, int slot) {
 
         this.setChanged();
-        this.onIngredientsChanged();
+        this.onIngredientsChanged(changeType);
         this._shouldSync = true;
     }
 
-    @SuppressWarnings("FieldMayBeFinal")
-    @CapabilityInject(IFluidHandler.class)
-    private static Capability<IFluidHandler> FLUID_HANDLER_CAPABILITY = null;
-
-    private static final ResourceLocation SYNC_DATA_ID = ExtremeReactors.newID("fluidinjector");
+    private static final ResourceLocation SYNC_DATA_ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix("fluidinjector");
 
     private final FluidStackHolder _fluids;
-    private final LazyOptional<IFluidHandler> _capability;
     private boolean _shouldSync;
 
     //endregion

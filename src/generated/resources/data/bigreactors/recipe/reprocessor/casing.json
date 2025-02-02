@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": {
+      "tag": "c:ingots/cyanite"
+    },
+    "I": {
+      "tag": "c:ingots/iron"
+    },
+    "W": {
+      "item": "minecraft:water_bucket"
+    }
+  },
+  "pattern": [
+    "ICI",
+    "CWC",
+    "ICI"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reprocessorcasing"
+  }
+}

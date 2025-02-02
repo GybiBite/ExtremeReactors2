@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:lapis_block"
+    },
+    "2": {
+      "item": "minecraft:redstone_block"
+    },
+    "G": {
+      "tag": "c:glass_blocks"
+    },
+    "T": {
+      "item": "bigreactors:reinforced_reactorpowertapfe_active"
+    }
+  },
+  "pattern": [
+    "212",
+    "GTG",
+    "212"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reinforced_reactorchargingportfe"
+  }
+}

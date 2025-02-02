@@ -18,24 +18,29 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.render.rotor;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part.TurbineRotorBearingEntity;
 import it.zerono.mods.zerocore.lib.client.render.ModRenderHelper;
-import net.minecraft.client.renderer.Atlases;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.model.IBakedModel;
-import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.world.phys.AABB;
 
 public class RotorBearingEntityRenderer
-        extends TileEntityRenderer<TurbineRotorBearingEntity> {
+        implements BlockEntityRenderer<TurbineRotorBearingEntity> {
 
-    public RotorBearingEntityRenderer(final TileEntityRendererDispatcher rendererDispatcher) {
-        super(rendererDispatcher);
+    public RotorBearingEntityRenderer(final BlockEntityRendererProvider.Context context) {
     }
 
-    //region TileEntityRenderer
+    //region BlockEntityRenderer
+
+    @Override
+    public AABB getRenderBoundingBox(TurbineRotorBearingEntity bearing) {
+        return bearing.getRenderBoundingBox();
+    }
 
     @Override
     public boolean shouldRenderOffScreen(TurbineRotorBearingEntity te) {
@@ -43,8 +48,8 @@ public class RotorBearingEntityRenderer
     }
 
     @Override
-    public void render(final TurbineRotorBearingEntity bearing, float partialTicks, final MatrixStack stack,
-                       final IRenderTypeBuffer buffer, final int combinedLight, final int combinedOverlay) {
+    public void render(final TurbineRotorBearingEntity bearing, float partialTicks, final PoseStack stack,
+                       final MultiBufferSource buffer, final int combinedLight, final int combinedOverlay) {
 
         if (!bearing.isMachineAssembled() || bearing.isTurbineInteriorInvisible()) {
             return;
@@ -56,9 +61,9 @@ public class RotorBearingEntityRenderer
             return;
         }
 
-        final IBakedModel shaft = descriptor.ShaftModel.get();
-        final IBakedModel blade = descriptor.BladeModel.get();
-        final IVertexBuilder builder = buffer.getBuffer(Atlases.solidBlockSheet());
+        final BakedModel shaft = descriptor.ShaftModel.get();
+        final BakedModel blade = descriptor.BladeModel.get();
+        final VertexConsumer builder = buffer.getBuffer(Sheets.solidBlockSheet());
 
         stack.pushPose();
 
@@ -73,7 +78,7 @@ public class RotorBearingEntityRenderer
             descriptor.accept(stack);
 
             // render the shaft
-            ModRenderHelper.renderModel(shaft, section.ShaftModelData, stack, builder, combinedLight, combinedOverlay);
+            ModRenderHelper.renderModel(shaft, section.ShaftModelData, stack, builder, combinedLight, combinedOverlay, null);
 
             // render the blades
 
@@ -84,7 +89,7 @@ public class RotorBearingEntityRenderer
                 for (int i = 0; i < bladeSpan.Length; ++i) {
 
                     bladeSpan.accept(stack);
-                    ModRenderHelper.renderModel(blade, bladeSpan.BladeModelData, stack, builder, combinedLight, combinedOverlay);
+                    ModRenderHelper.renderModel(blade, bladeSpan.BladeModelData, stack, builder, combinedLight, combinedOverlay, null);
                 }
 
                 stack.popPose();

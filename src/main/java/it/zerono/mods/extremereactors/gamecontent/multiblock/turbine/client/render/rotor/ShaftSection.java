@@ -21,10 +21,10 @@ package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.client.ren
 import com.google.common.collect.Lists;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.RotorBladeState;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.RotorShaftState;
-import net.minecraft.util.Direction;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.model.data.IModelData;
+import net.minecraft.core.Direction;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ import java.util.List;
 public class ShaftSection {
 
     final RotorShaftState State;
-    final IModelData ShaftModelData;
+    final ModelData ShaftModelData;
     final BladeSpan[] Blades;
 
     public static Builder builder(final RotorShaftState state) {

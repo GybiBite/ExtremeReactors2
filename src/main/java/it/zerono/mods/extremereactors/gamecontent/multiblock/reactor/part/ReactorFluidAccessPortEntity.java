@@ -29,6 +29,9 @@ import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IFuelSource;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactantHelper;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.component.ReactorFluidAccessPortComponent;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.container.ReactorFluidAccessPortContainer;
+import it.zerono.mods.zerocore.base.BaseHelper;
 import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.DebuggableHelper;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
@@ -36,54 +39,55 @@ import it.zerono.mods.zerocore.lib.block.INeighborChangeListener;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
 import it.zerono.mods.zerocore.lib.data.IIoEntity;
 import it.zerono.mods.zerocore.lib.data.IoDirection;
+import it.zerono.mods.zerocore.lib.data.component.FluidTankComponent;
+import it.zerono.mods.zerocore.lib.data.component.IComponentProvider;
 import it.zerono.mods.zerocore.lib.data.nbt.IConditionallySyncableEntity;
 import it.zerono.mods.zerocore.lib.data.stack.IStackHolder;
 import it.zerono.mods.zerocore.lib.fluid.FluidHelper;
 import it.zerono.mods.zerocore.lib.fluid.FluidTank;
 import it.zerono.mods.zerocore.lib.fluid.handler.FluidHandlerForwarder;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
-import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.common.util.NonNullConsumer;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fml.LogicalSide;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 public class ReactorFluidAccessPortEntity
         extends AbstractReactorEntity
-        implements IFuelSource<FluidStack>, IIoEntity, INeighborChangeListener, INamedContainerProvider, IConditionallySyncableEntity {
+        implements IFuelSource<FluidStack>, IIoEntity, INeighborChangeListener, MenuProvider,
+                    IConditionallySyncableEntity, IComponentProvider<ReactorFluidAccessPortComponent> {
 
     public static int TANK_CAPACITY = 2 * ReactorFuelRodEntity.FUEL_CAPACITY_PER_FUEL_ROD;
 
-    public ReactorFluidAccessPortEntity() {
+    public ReactorFluidAccessPortEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REACTOR_FLUID_ACCESSPORT.get());
+        super(Content.TileEntityTypes.REACTOR_FLUID_ACCESSPORT.get(), position, blockState);
         this.setIoDirection(IoDirection.Input);
         this._fuelTank = new FluidTank(TANK_CAPACITY).setOnLoadListener(this::onTankChanged).setOnContentsChangedListener(this::onTankChanged);
         this._wasteTank = new FluidTank(TANK_CAPACITY).setOnLoadListener(this::onTankChanged).setOnContentsChangedListener(this::onTankChanged);
-        this._fuelCapability = LazyOptional.of(this::createFuelCapability);
-        this._wasteCapability = LazyOptional.of(this::createWasteCapability);
+        this._fuelCapability = this.createFuelCapability();
+        this._wasteCapability = this.createWasteCapability();
         this._shouldSync = false;
 
         this.setCommandDispatcher(TileCommandDispatcher.<ReactorFluidAccessPortEntity>builder()
@@ -98,6 +102,16 @@ public class ReactorFluidAccessPortEntity
         return type.isFuel() ? this._fuelTank : this._wasteTank;
     }
 
+    @Nullable
+    public IFluidHandler getFluidHandler() {
+
+        if (!this.isRemoved()) {
+            return this.getIoDirection().isInput() ? this._fuelCapability : this._wasteCapability;
+        }
+
+        return null;
+    }
+
     /**
      * Called when stuff has been placed in the access port
      */
@@ -105,43 +119,35 @@ public class ReactorFluidAccessPortEntity
         this.markChunkDirty();
     }
 
-    public static void itemTooltipBuilder(final ItemStack stack, final CompoundNBT data, final @Nullable IBlockReader world,
-                                          final NonNullConsumer<ITextComponent> appender, final boolean isAdvancedTooltip) {
+    public static void itemTooltipBuilder(ItemStack stack, Item.TooltipContext context,
+                                          Consumer<@NotNull Component> appender, TooltipFlag flag) {
 
-        final FluidTank tank = new FluidTank(TANK_CAPACITY);
-        IFormattableTextComponent text;
+        final var component = stack.get(ReactorFluidAccessPortComponent.getComponentType());
 
-        if (data.contains("iodir")) {
-            appender.accept(new TranslationTextComponent(IoDirection.read(data, "iodir", IoDirection.Input).isInput() ?
-                    "gui.bigreactors.reactor.fluidaccessport.directioninput.line1" :
-                    "gui.bigreactors.reactor.fluidaccessport.directionoutput.line1").setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
-        }
+        if (null != component) {
 
-        if (data.contains("invin")) {
+            appender.accept(Component.translatable(component.direction().isInput() ?
+                    "gui.bigreactors.reactor.fluidaccessport.directioninput.tooltip.title" :
+                    "gui.bigreactors.reactor.fluidaccessport.directionoutput.tooltip.title")
+                    .setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
 
-            tank.syncDataFrom(data.getCompound("invin"), SyncReason.FullSync);
-            appender.accept(getTankTooltip(tank, "gui.bigreactors.generic.fuel.label"));
-        }
-
-        if (data.contains("invout")) {
-
-            tank.syncDataFrom(data.getCompound("invout"), SyncReason.FullSync);
-            appender.accept(getTankTooltip(tank, "gui.bigreactors.generic.waste.label"));
+            appender.accept(getTankTooltip(component.fuel(), "gui.bigreactors.generic.fuel.label"));
+            appender.accept(getTankTooltip(component.waste(), "gui.bigreactors.generic.waste.label"));
         }
     }
 
-    private static ITextComponent getTankTooltip(final FluidTank tank, final String labelKey) {
+    private static Component getTankTooltip(FluidTankComponent tank, final String labelKey) {
 
-        final IFormattableTextComponent text;
+        final MutableComponent text;
 
-        if (tank.isEmpty()) {
-            text = new TranslationTextComponent("gui.bigreactors.generic.empty");
+        if (tank.content().isEmpty()) {
+            text = BaseHelper.emptyValue();
         } else {
-            text = new TranslationTextComponent("gui.bigreactors.reactor.fluidaccessport.item.reactant",
+            text = Component.translatable("gui.bigreactors.reactor.fluidaccessport.item.reactant",
                     FluidHelper.getFluidName(tank.getFluid()), tank.getFluidAmount(), TANK_CAPACITY);
         }
 
-        return new TranslationTextComponent(labelKey).append(text.setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
+        return Component.translatable(labelKey).append(text.setStyle(CommonConstants.STYLE_TOOLTIP_VALUE));
     }
 
     //region client render support
@@ -149,9 +155,9 @@ public class ReactorFluidAccessPortEntity
     @Override
     protected int getUpdatedModelVariantIndex() {
 
-        final int connectedOffset = this.isMachineAssembled() && this.getNeighborCapability().isPresent() ? 1 : 0;
+        final int connectedOffset = this.isMachineAssembled() && null != this.getNeighborCapability() ? 1 : 0;
 
-        return this.getIoDirection().isInput() ? 2 + connectedOffset : 0 + connectedOffset;
+        return this.getIoDirection().isInput() ? 2 + connectedOffset : connectedOffset;
     }
 
     //endregion
@@ -216,7 +222,7 @@ public class ReactorFluidAccessPortEntity
         if (!outputStack.isEmpty()) {
 
             // Find matching mapping
-            final IMapping<ResourceLocation, Reactant> mapping = ReactantMappingsRegistry.getFromFluid(outputStack).orElse(null);
+            final IMapping<TagKey<Fluid>, Reactant> mapping = ReactantMappingsRegistry.getFromFluid(outputStack).orElse(null);
 
             if (null == mapping || !reactant.equals(mapping.getProduct())) {
                 // The fluid in the output tank is not compatible with the Reactant
@@ -243,7 +249,7 @@ public class ReactorFluidAccessPortEntity
         Since there is a 1:1 ratio between fluid fuels/wastes and reactants, there is really no "best" mapping.
         Pick the first one available.
         */
-        final IMapping<Reactant, ResourceLocation> bestMapping = ReactantMappingsRegistry.getToFluid(reactant)
+        final IMapping<Reactant, TagKey<Fluid>> bestMapping = ReactantMappingsRegistry.getToFluid(reactant)
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.get(0))
                 .orElse(null);
@@ -270,7 +276,7 @@ public class ReactorFluidAccessPortEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -281,12 +287,12 @@ public class ReactorFluidAccessPortEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
-        return ModTileContainer.empty(Content.ContainerTypes.REACTOR_FLUID_ACCESSPORT.get(), windowId, this, (ServerPlayerEntity)player);
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
+        return new ReactorFluidAccessPortContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -348,12 +354,12 @@ public class ReactorFluidAccessPortEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
         this.setIoDirection(IoDirection.read(data, "iodir", IoDirection.Input));
-        this.syncChildDataEntityFrom(this._fuelTank, "invin", data, syncReason);
-        this.syncChildDataEntityFrom(this._wasteTank, "invout", data, syncReason);
+        this.syncChildDataEntityFrom(this._fuelTank, "invin", data, registries, syncReason);
+        this.syncChildDataEntityFrom(this._wasteTank, "invout", data, registries, syncReason);
 
         if (syncReason.isFullSync()) {
             this._shouldSync = true;
@@ -361,12 +367,12 @@ public class ReactorFluidAccessPortEntity
     }
 
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
         IoDirection.write(data, "iodir", this.getIoDirection());
-        this.syncChildDataEntityTo(this._fuelTank, "invin", data, syncReason);
-        this.syncChildDataEntityTo(this._wasteTank, "invout", data, syncReason);
+        this.syncChildDataEntityTo(this._fuelTank, "invin", data, registries, syncReason);
+        this.syncChildDataEntityTo(this._wasteTank, "invout", data, registries, syncReason);
         return data;
     }
 
@@ -394,6 +400,24 @@ public class ReactorFluidAccessPortEntity
     }
 
     //endregion
+    //region IComponentProvider<ReactorFluidAccessPortComponent>
+
+    @Override
+    public ReactorFluidAccessPortComponent createDataComponent() {
+        return new ReactorFluidAccessPortComponent(this._direction, this._fuelTank.createDataComponent(),
+                this._wasteTank.createDataComponent());
+    }
+
+    @Override
+    public void mergeComponent(ReactorFluidAccessPortComponent component) {
+
+        this.setIoDirection(component.direction());
+        this._fuelTank.mergeComponent(component.fuel());
+        this._wasteTank.mergeComponent(component.waste());
+        this._shouldSync = true;
+    }
+
+    //endregion
     //region IDebuggable
 
     @Override
@@ -413,8 +437,32 @@ public class ReactorFluidAccessPortEntity
      * Override in derived classes to return true if your tile entity got a GUI
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return true;
+    }
+
+    @Override
+    protected void applyImplicitComponents(DataComponentInput input) {
+
+        final var component = input.get(ReactorFluidAccessPortComponent.getComponentType());
+
+        if (null != component) {
+            this.mergeComponent(component);
+        }
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder collector) {
+        collector.set(ReactorFluidAccessPortComponent.getComponentType(), this.createDataComponent());
+    }
+
+    @Override
+    public ItemStack asStorableStack() {
+
+        final var stack = new ItemStack(this.getBlockType());
+
+        stack.set(ReactorFluidAccessPortComponent.getComponentType(), this.createDataComponent());
+        return stack;
     }
 
     //endregion
@@ -428,49 +476,21 @@ public class ReactorFluidAccessPortEntity
     }
 
     //endregion
-    //region TileEntity
-
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction side) {
-
-        if (!this.isRemoved() && FLUID_HANDLER_CAPABILITY == capability) {
-
-            if (this.getIoDirection().isInput()) {
-                return this._fuelCapability.cast();
-            } else {
-                return this._wasteCapability.cast();
-            }
-        }
-
-        return super.getCapability(capability, side);
-    }
-
-    /**
-     * invalidates a tile entity
-     */
-    @Override
-    public void setRemoved() {
-
-        super.setRemoved();
-        this._fuelCapability.invalidate();
-        this._wasteCapability.invalidate();
-    }
-
-    //endregion
     //region internals
 
     private FluidStack getStack(ReactantType type) {
         return this.getFluidStackHandler(type).getFluidInTank(0);
     }
 
-    private LazyOptional<IFluidHandler> getNeighborCapability() {
-        return CodeHelper.optionalFlatMap(this.getPartWorld(), this.getOutwardDirection(),
-                        (world, direction) -> WorldHelper.getTile(world, this.getWorldPosition().relative(direction))
-                                .map(te -> te.getCapability(FLUID_HANDLER_CAPABILITY, direction.getOpposite())))
-                .orElse(LazyOptional.empty());
+    @Nullable
+    private IFluidHandler getNeighborCapability() {
+        return CodeHelper.optionalMap(this.getPartWorld(), this.getOutwardDirection(),
+                        (level, direction) -> level.getCapability(Capabilities.FluidHandler.BLOCK,
+                                this.getWorldPosition().relative(direction), direction.getOpposite()))
+                .orElse(null);
     }
 
-    @Nonnull
+    @NotNull
     private IFluidHandler createFuelCapability() {
         return new FluidHandlerForwarder(this.getFluidStackHandler(ReactantType.Fuel)) {
 
@@ -486,7 +506,7 @@ public class ReactorFluidAccessPortEntity
         };
     }
 
-    @Nonnull
+    @NotNull
     private IFluidHandler createWasteCapability() {
         return new FluidHandlerForwarder(this.getFluidStackHandler(ReactantType.Waste)) {
 
@@ -512,25 +532,21 @@ public class ReactorFluidAccessPortEntity
         this._shouldSync = true;
     }
 
-    private void handleCommandEjectFuel(CompoundNBT options) {
+    private void handleCommandEjectFuel(CompoundTag options) {
         this.getMultiblockController().ifPresent(c -> c.ejectFuel(options.contains("void") && options.getBoolean("void")));
     }
 
-    private void handleCommandEjectWaste(CompoundNBT options) {
+    private void handleCommandEjectWaste(CompoundTag options) {
         this.getMultiblockController().ifPresent(c -> c.ejectWaste(options.contains("void") && options.getBoolean("void")));
     }
 
-    @SuppressWarnings("FieldMayBeFinal")
-    @CapabilityInject(IFluidHandler.class)
-    private static Capability<IFluidHandler> FLUID_HANDLER_CAPABILITY = null;
-
-    private static final ResourceLocation SYNC_DATA_ID = ExtremeReactors.newID("injector");
+    private static final ResourceLocation SYNC_DATA_ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix("injector");
 
     private final FluidTank _fuelTank;
     private final FluidTank _wasteTank;
 
-    private final LazyOptional<IFluidHandler> _fuelCapability;
-    private final LazyOptional<IFluidHandler> _wasteCapability;
+    private final IFluidHandler _fuelCapability;
+    private final IFluidHandler _wasteCapability;
     private IoDirection _direction;
     private boolean _shouldSync;
 

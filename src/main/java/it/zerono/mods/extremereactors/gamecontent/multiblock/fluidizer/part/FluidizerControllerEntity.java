@@ -18,9 +18,11 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part;
 
+import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.gamecontent.CommonConstants;
 import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.common.client.model.data.ModelTransformers;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.FluidizerTankData;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.MultiblockFluidizer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.container.FluidizerControllerContainer;
 import it.zerono.mods.zerocore.lib.IDebugMessages;
@@ -28,31 +30,38 @@ import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.network.INetworkTileEntitySyncProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.LogicalSide;
-
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.neoforged.fml.LogicalSide;
+import org.jetbrains.annotations.Nullable;
 
 public class FluidizerControllerEntity
         extends AbstractFluidizerEntity
-        implements INamedContainerProvider, INetworkTileEntitySyncProvider {
+        implements MenuProvider, INetworkTileEntitySyncProvider {
 
-    public FluidizerControllerEntity() {
+    public FluidizerControllerEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.FLUIDIZER_CONTROLLER.get());
+        super(Content.TileEntityTypes.FLUIDIZER_CONTROLLER.get(), position, blockState);
         this.setCommandDispatcher(TileCommandDispatcher.<FluidizerControllerEntity>builder()
                 .addServerHandler(CommonConstants.COMMAND_ACTIVATE, rce -> rce.setFluidizerActive(true))
                 .addServerHandler(CommonConstants.COMMAND_DEACTIVATE, rce -> rce.setFluidizerActive(false))
                 .build(this)
         );
+
+        this._renderBoundingBox = AABB.INFINITE;
+    }
+
+    @Nullable
+    public FluidizerTankData getTankData() {
+        return this._tankRenderData;
     }
 
     //region client render support
@@ -64,6 +73,10 @@ public class FluidizerControllerEntity
                 ModelTransformers.MODEL_DEFAULT);
     }
 
+    public AABB getRenderBoundingBox() {
+        return this._renderBoundingBox;
+    }
+
     //endregion
     //region IMultiblockPart
 
@@ -72,6 +85,12 @@ public class FluidizerControllerEntity
 
         super.onPostMachineAssembled(controller);
         this.listenForControllerDataUpdates();
+
+        if (this.getCurrentWorld().isClientSide()) {
+
+            this._tankRenderData = ExtremeReactors.getProxy().createFluidizerTankData(this);
+            this._renderBoundingBox = controller.getBoundingBox().getAABB().inflate(16);
+        }
     }
 
     /**
@@ -119,7 +138,7 @@ public class FluidizerControllerEntity
      * Override in derived classes to return true if your tile entity got a GUI
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return this.isMachineAssembled();
     }
 
@@ -133,7 +152,7 @@ public class FluidizerControllerEntity
      * @param updateNow if true, send an update to the player immediately.
      */
     @Override
-    public void enlistForUpdates(ServerPlayerEntity player, boolean updateNow) {
+    public void enlistForUpdates(ServerPlayer player, boolean updateNow) {
         this.executeOnController(c -> c.enlistForUpdates(player, updateNow));
     }
 
@@ -143,7 +162,7 @@ public class FluidizerControllerEntity
      * @param player the player to be removed from the update queue.
      */
     @Override
-    public void delistFromUpdates(ServerPlayerEntity player) {
+    public void delistFromUpdates(ServerPlayer player) {
         this.executeOnController(c -> c.delistFromUpdates(player));
     }
 
@@ -155,7 +174,7 @@ public class FluidizerControllerEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -166,14 +185,22 @@ public class FluidizerControllerEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
         return new FluidizerControllerContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
+
+    //endregion
+    //region internals
+
+    @Nullable
+    private FluidizerTankData _tankRenderData;
+    private AABB _renderBoundingBox;
+
 
     //endregion
 }

@@ -18,9 +18,15 @@
 
 package it.zerono.mods.extremereactors.api.reactor;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
 import it.zerono.mods.extremereactors.api.IMapping;
 import it.zerono.mods.extremereactors.api.internal.AbstractNamedValue;
+import it.zerono.mods.zerocore.lib.data.ModCodecs;
 import it.zerono.mods.zerocore.lib.data.gfx.Colour;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -35,6 +41,23 @@ public class Reactant
     extends AbstractNamedValue
     implements Predicate<ReactantType> {
 
+    public static final ModCodecs<Reactant, ByteBuf> CODECS = new ModCodecs<>(
+            RecordCodecBuilder.create(instance -> instance.group(
+                            Codec.STRING.fieldOf("name").forGetter(AbstractNamedValue::getName),
+                            ReactantType.CODECS.field("type", Reactant::getType),
+                            Colour.CODECS.field("colour", Reactant::getColour),
+                            Codec.STRING.fieldOf("translation").forGetter(AbstractNamedValue::getTranslationKey),
+                            FuelProperties.CODECS.field("fuelprop", Reactant::getFuelData))
+                    .apply(instance, Reactant::new)),
+            StreamCodec.composite(
+                    ByteBufCodecs.STRING_UTF8, AbstractNamedValue::getName,
+                    ReactantType.CODECS.streamCodec(), Reactant::getType,
+                    Colour.CODECS.streamCodec(), Reactant::getColour,
+                    ByteBufCodecs.STRING_UTF8, AbstractNamedValue::getTranslationKey,
+                    FuelProperties.CODECS.streamCodec(), Reactant::getFuelData,
+                    Reactant::new)
+    );
+
     /**
      * Construct a new Reactant
      *
@@ -45,11 +68,7 @@ public class Reactant
      * @param translationKey The translation key for the name of the reactant.
      */
     Reactant(String name, ReactantType type, int rgbColour, String translationKey, FuelProperties fuelData) {
-
-        super(name, translationKey);
-        this._type = type;
-        this._colour = Colour.fromRGB(rgbColour);
-        this._fuelData = type.isFuel() ? Objects.requireNonNull(fuelData) : FuelProperties.INVALID;
+        this(name, type, Colour.fromRGB(rgbColour), translationKey, fuelData);
     }
 
     public ReactantType getType() {
@@ -111,21 +130,37 @@ public class Reactant
     //region Object
 
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(final Object other) {
 
-        if ((obj instanceof Reactant) && super.equals(obj)) {
-
-            final Reactant other = (Reactant)obj;
-
-            return this.test(other.getType()) &&
-                    this.getColour() == other.getColour();
+        if (this == other) {
+            return true;
         }
 
-        return false;
+        if (!(other instanceof Reactant) || !super.equals(other)) {
+            return false;
+        }
+
+        final Reactant reactant = (Reactant) other;
+
+        return this._type == reactant._type && Objects.equals(this._colour, reactant._colour) &&
+                Objects.equals(this._fuelData, reactant._fuelData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), this._type, this._colour, this._fuelData);
     }
 
     //endregion
     //region internals
+
+    private Reactant(String name, ReactantType type, Colour colour, String translationKey, FuelProperties fuelData) {
+
+        super(name, translationKey);
+        this._type = Objects.requireNonNull(type);
+        this._colour = Objects.requireNonNull(colour);
+        this._fuelData = type.isFuel() ? Objects.requireNonNull(fuelData) : FuelProperties.INVALID;
+    }
 
     private final ReactantType _type;
     private final Colour _colour;

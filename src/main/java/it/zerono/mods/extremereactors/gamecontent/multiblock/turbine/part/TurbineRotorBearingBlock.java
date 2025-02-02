@@ -19,27 +19,27 @@
 package it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.part;
 
 import it.zerono.mods.extremereactors.config.Config;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.ITurbinePartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.TurbinePartType;
 import it.zerono.mods.zerocore.base.multiblock.part.GenericDeviceBlock;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.particles.IParticleData;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.Optional;
-import java.util.Random;
 
 public class TurbineRotorBearingBlock
-        extends GenericDeviceBlock<MultiblockTurbine, TurbinePartType> {
+        extends GenericDeviceBlock<MultiblockTurbine, ITurbinePartType> {
 
-    public TurbineRotorBearingBlock(final MultiblockPartProperties<TurbinePartType> properties) {
+    public TurbineRotorBearingBlock(final MultiblockPartProperties<ITurbinePartType> properties) {
         super(properties);
     }
 
@@ -52,7 +52,7 @@ public class TurbineRotorBearingBlock
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos position, Random random) {
+    public void animateTick(BlockState state, Level world, BlockPos position, RandomSource random) {
 
         if (Config.CLIENT.disableTurbineParticles.get()) {
             return;
@@ -62,8 +62,8 @@ public class TurbineRotorBearingBlock
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(final TurbineRotorBearingEntity bearing, final World world,
-                            final BlockPos pos, final Random random) {
+    public void animateTick(final TurbineRotorBearingEntity bearing, final Level world,
+                            final BlockPos pos, final RandomSource random) {
 
         bearing.getMultiblockController()
                 .filter(turbine -> !turbine.isInteriorInvisible())
@@ -79,7 +79,7 @@ public class TurbineRotorBearingBlock
                     final int offsetX = inwardsDir.getStepX();
                     final int offsetY = inwardsDir.getStepY();
                     final int offsetZ = inwardsDir.getStepZ();
-                    final IParticleData particle = ParticleTypes.CLOUD; // TODO valentines HEART
+                    final ParticleOptions particle = ParticleTypes.CLOUD; // TODO valentines HEART
 
                     int minX = minCoord.getX();
                     int minY = minCoord.getY();
@@ -113,7 +113,7 @@ public class TurbineRotorBearingBlock
     //endregion
     //region internals
 
-    private static Optional<TurbineRotorBearingEntity> getTile(final IBlockReader world, final BlockPos position) {
+    private static Optional<TurbineRotorBearingEntity> getTile(final BlockGetter world, final BlockPos position) {
         return WorldHelper.getTile(world, position)
                 .filter(te -> te instanceof TurbineRotorBearingEntity)
                 .map(te -> (TurbineRotorBearingEntity)te);

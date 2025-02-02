@@ -22,41 +22,41 @@ import com.google.common.base.Strings;
 import it.zerono.mods.extremereactors.gamecontent.Content;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.FuelRodsLayout;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorReader;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.container.ReactorControlRodContainer;
 import it.zerono.mods.zerocore.lib.CodeHelper;
 import it.zerono.mods.zerocore.lib.block.AbstractModBlockEntity;
 import it.zerono.mods.zerocore.lib.block.TileCommandDispatcher;
-import it.zerono.mods.zerocore.lib.item.inventory.container.ModTileContainer;
 import it.zerono.mods.zerocore.lib.multiblock.IMultiblockPart;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.world.WorldHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ReactorControlRodEntity
         extends AbstractReactorEntity
-        implements INamedContainerProvider {
+        implements MenuProvider {
 
     public static String COMMAND_SET_NAME = "setname";
     public static String COMMAND_SET_INSERTION = "setinsertion";
 
-    public ReactorControlRodEntity() {
+    public ReactorControlRodEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REACTOR_CONTROLROD.get());
+        super(Content.TileEntityTypes.REACTOR_CONTROLROD.get(), position, blockState);
         this._insertionRatio = 0;
         this._name = "";
 
@@ -71,7 +71,7 @@ public class ReactorControlRodEntity
                 (world, direction) -> this.linkToFuelRods(world, direction.getOpposite(), fuelRodsCount));
     }
 
-    private void linkToFuelRods(final World world, final Direction direction,
+    private void linkToFuelRods(final Level world, final Direction direction,
                                 final int fuelRodsCount) {
 
         BlockPos lookupPosition = this.getWorldPosition();
@@ -153,7 +153,7 @@ public class ReactorControlRodEntity
     }
 
     //endregion
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -164,12 +164,12 @@ public class ReactorControlRodEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
-        return ModTileContainer.empty(Content.ContainerTypes.REACTOR_CONTROLROD.get(), windowId, this, (ServerPlayerEntity)player);
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
+        return new ReactorControlRodContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -177,9 +177,9 @@ public class ReactorControlRodEntity
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(CompoundNBT data, SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
 
         if (data.contains("rodInsertion")) {
             this.setInsertionRatio(data.getByte("rodInsertion"));
@@ -191,9 +191,9 @@ public class ReactorControlRodEntity
     }
 
     @Override
-    public CompoundNBT syncDataTo(CompoundNBT data, SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
         data.putByte("rodInsertion", this.getInsertionRatio());
         data.putString("rodName", this.getName());
         return data;
@@ -235,14 +235,14 @@ public class ReactorControlRodEntity
      * @param state
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return this.isMachineAssembled();
     }
 
     //endregion
     //region internals
 
-    private void setInsertionFromGUI(final CompoundNBT data) {
+    private void setInsertionFromGUI(final CompoundTag data) {
 
         if (data.contains("v")) {
 
@@ -255,7 +255,7 @@ public class ReactorControlRodEntity
         }
     }
 
-    private void setNameFromGUI(final CompoundNBT data) {
+    private void setNameFromGUI(final CompoundTag data) {
 
         if (data.contains("name")) {
             this.setName(data.getString("name"));

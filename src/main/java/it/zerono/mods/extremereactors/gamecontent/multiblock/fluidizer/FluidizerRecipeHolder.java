@@ -28,10 +28,11 @@ import it.zerono.mods.zerocore.lib.recipe.ModRecipe;
 import it.zerono.mods.zerocore.lib.recipe.holder.IHeldRecipe;
 import it.zerono.mods.zerocore.lib.recipe.holder.IRecipeHolder;
 import it.zerono.mods.zerocore.lib.recipe.holder.RecipeHolder;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.LogicalSide;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.function.Function;
 
@@ -105,7 +106,7 @@ class FluidizerRecipeHolder<Recipe extends ModRecipe & IFluidizerRecipe>
 
     @Override
     public boolean isValidIngredient(final ItemStack stack) {
-        return Content.Recipes.FLUIDIZER_RECIPE_TYPE.findFirst(recipe -> {
+        return Content.Recipes.FLUIDIZER_RECIPE_TYPE.get().findFirst(recipe -> {
 
             if (recipe instanceof FluidizerSolidRecipe) {
                 return ((FluidizerSolidRecipe) recipe).matchIgnoreAmount(stack);
@@ -119,7 +120,7 @@ class FluidizerRecipeHolder<Recipe extends ModRecipe & IFluidizerRecipe>
 
     @Override
     public boolean isValidIngredient(final FluidStack stack) {
-        return Content.Recipes.FLUIDIZER_RECIPE_TYPE.findFirst(recipe -> {
+        return Content.Recipes.FLUIDIZER_RECIPE_TYPE.get().findFirst(recipe -> {
 
             if (recipe instanceof FluidizerFluidMixingRecipe) {
                 return ((FluidizerFluidMixingRecipe) recipe).matchIgnoreAmount(stack);
@@ -133,29 +134,29 @@ class FluidizerRecipeHolder<Recipe extends ModRecipe & IFluidizerRecipe>
     //region ISyncableEntity
 
     /**
-     * Sync the entity data from the given {@link CompoundNBT}
+     * Sync the entity data from the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to read from
+     * @param data       the {@link CompoundTag} to read from
      * @param syncReason the reason why the synchronization is necessary
      */
     @Override
-    public void syncDataFrom(final CompoundNBT data, final SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
         this._recipeHolder.refresh();
-        this.syncChildDataEntityFrom(this._recipeHolder, "recipe", data, syncReason);
+        this.syncChildDataEntityFrom(this._recipeHolder, "recipe", data, registries, syncReason);
     }
 
     /**
-     * Sync the entity data to the given {@link CompoundNBT}
+     * Sync the entity data to the given {@link CompoundTag}
      *
-     * @param data       the {@link CompoundNBT} to write to
+     * @param data       the {@link CompoundTag} to write to
      * @param syncReason the reason why the synchronization is necessary
-     * @return the {@link CompoundNBT} the data was written to (usually {@code data})
+     * @return the {@link CompoundTag} the data was written to (usually {@code data})
      */
     @Override
-    public CompoundNBT syncDataTo(final CompoundNBT data, final SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        this.syncChildDataEntityTo(this._recipeHolder, "recipe", data, syncReason);
+        this.syncChildDataEntityTo(this._recipeHolder, "recipe", data, registries, syncReason);
         return data;
     }
 

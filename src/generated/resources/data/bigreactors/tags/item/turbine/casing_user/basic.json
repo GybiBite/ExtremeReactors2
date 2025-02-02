@@ -1,0 +1,10 @@
+{
+  "values": [
+    "bigreactors:basic_turbinecontroller",
+    "bigreactors:basic_turbinepowertapfe_active",
+    "bigreactors:basic_turbinepowertapfe_passive",
+    "bigreactors:basic_turbinefluidport_forge_active",
+    "bigreactors:basic_turbinefluidport_forge_passive",
+    "bigreactors:basic_turbinechargingportfe"
+  ]
+}

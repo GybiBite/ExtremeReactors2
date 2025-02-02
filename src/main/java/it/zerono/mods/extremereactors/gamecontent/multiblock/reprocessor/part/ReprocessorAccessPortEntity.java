@@ -25,35 +25,28 @@ import it.zerono.mods.zerocore.lib.item.ItemHelper;
 import it.zerono.mods.zerocore.lib.item.inventory.handler.ItemHandlerModifiableForwarder;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.items.IItemHandler;
+import org.jetbrains.annotations.Nullable;
 
 public class ReprocessorAccessPortEntity
         extends AbstractReprocessorEntity
-        implements INamedContainerProvider {
+        implements MenuProvider {
 
-    public ReprocessorAccessPortEntity(final TileEntityType<?> type, final IoDirection direction) {
+    public ReprocessorAccessPortEntity(final BlockEntityType<?> type, final IoDirection direction,
+                                       final BlockPos position, final BlockState blockState) {
 
-        super(type);
+        super(type, position, blockState);
         this._direction = direction;
         this._forwarder = new ItemHandlerModifiableForwarder(ItemHelper.EMPTY_ITEM_HANDLER);
-        this._capability = LazyOptional.of(() -> this._forwarder);
     }
 
     public IItemHandler getHandler() {
@@ -64,7 +57,7 @@ public class ReprocessorAccessPortEntity
         return this._direction;
     }
 
-    //region INamedContainerProvider
+    //region MenuProvider
 
     /**
      * Create the SERVER-side container for this TileEntity
@@ -75,12 +68,12 @@ public class ReprocessorAccessPortEntity
      */
     @Nullable
     @Override
-    public Container createMenu(final int windowId, final PlayerInventory inventory, final PlayerEntity player) {
+    public AbstractContainerMenu createMenu(final int windowId, final Inventory inventory, final Player player) {
         return new ReprocessorAccessPortContainer(windowId, inventory, this);
     }
 
     @Override
-    public ITextComponent getDisplayName() {
+    public Component getDisplayName() {
         return super.getPartDisplayName();
     }
 
@@ -92,7 +85,7 @@ public class ReprocessorAccessPortEntity
      * Override in derived classes to return true if your tile entity got a GUI
      */
     @Override
-    public boolean canOpenGui(World world, BlockPos position, BlockState state) {
+    public boolean canOpenGui(Level world, BlockPos position, BlockState state) {
         return this.isMachineAssembled();
     }
 
@@ -120,24 +113,10 @@ public class ReprocessorAccessPortEntity
     }
 
     //endregion
-    //region TileEntity
-
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        return ITEM_HANDLER_CAPABILITY == cap ? this._capability.cast() : super.getCapability(cap, side);
-    }
-
-    //endregion
     //region internals
-
-    @SuppressWarnings("FieldMayBeFinal")
-    @CapabilityInject(IItemHandler.class)
-    private static Capability<IItemHandler> ITEM_HANDLER_CAPABILITY = null;
 
     private final IoDirection _direction;
     private final ItemHandlerModifiableForwarder _forwarder;
-    private final LazyOptional<IItemHandlerModifiable> _capability;
 
     //endregion
 }

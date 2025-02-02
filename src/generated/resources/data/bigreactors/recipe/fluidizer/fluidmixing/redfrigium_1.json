@@ -1,0 +1,15 @@
+{
+  "type": "bigreactors:fluidizerfluidmixing",
+  "ingredient1": {
+    "amount": 1000,
+    "id": "bigreactors:cryomisi"
+  },
+  "ingredient2": {
+    "amount": 1000,
+    "id": "bigreactors:tangerium"
+  },
+  "result": {
+    "amount": 2000,
+    "id": "bigreactors:redfrigium"
+  }
+}

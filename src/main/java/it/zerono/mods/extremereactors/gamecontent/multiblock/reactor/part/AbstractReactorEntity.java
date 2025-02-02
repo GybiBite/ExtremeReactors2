@@ -22,35 +22,34 @@ import it.zerono.mods.extremereactors.api.radiation.RadiationPacket;
 import it.zerono.mods.extremereactors.api.reactor.IHeatEntity;
 import it.zerono.mods.extremereactors.api.reactor.radiation.IRadiationModerator;
 import it.zerono.mods.extremereactors.api.reactor.radiation.IrradiationData;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.network.UpdateClientsFuelRodsLayout;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.IMultiblockReactorVariant;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.variant.ReactorVariant;
-import it.zerono.mods.zerocore.base.multiblock.part.AbstractMultiblockEntity;
+import it.zerono.mods.zerocore.base.multiblock.part.AbstractMultiblockMachineEntity;
 import it.zerono.mods.zerocore.lib.CodeHelper;
+import it.zerono.mods.zerocore.lib.IDebugMessages;
+import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartType;
 import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartTypeProvider;
-import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockVariantProvider;
-import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelData;
 import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelDataCache;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
 import it.zerono.mods.zerocore.lib.multiblock.variant.IMultiblockVariant;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
-import net.minecraftforge.client.model.data.EmptyModelData;
-import net.minecraftforge.client.model.data.IModelData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 public abstract class AbstractReactorEntity
-        extends AbstractMultiblockEntity<MultiblockReactor>
-        implements IHeatEntity, IRadiationModerator, IMultiblockPartTypeProvider<MultiblockReactor, ReactorPartType>,
-                    IMultiblockVariantProvider<IMultiblockReactorVariant> {
+        extends AbstractMultiblockMachineEntity<MultiblockReactor, IMultiblockReactorVariant>
+        implements IHeatEntity, IRadiationModerator, IMultiblockPartTypeProvider<MultiblockReactor, IReactorPartType> {
 
-    public AbstractReactorEntity(final TileEntityType<?> type) {
-        super(type);
+    public AbstractReactorEntity(final BlockEntityType<?> type, final BlockPos position, final BlockState blockState) {
+        super(type, position, blockState);
     }
 
     protected boolean isReactorActive() {
@@ -66,18 +65,18 @@ public abstract class AbstractReactorEntity
                 .ifPresent(c -> c.setMachineActive(active));
     }
 
-    public ITextComponent getPartDisplayName() {
-        return new TranslationTextComponent("gui.bigreactors.multiblock_variant_part_format.title",
-                new TranslationTextComponent(this.getMultiblockVariant().map(IMultiblockVariant::getTranslationKey).orElse("unknown")),
-                new TranslationTextComponent(this.getPartType().map(ReactorPartType::getTranslationKey).orElse("unknown")));
+    public Component getPartDisplayName() {
+        return Component.translatable("gui.bigreactors.multiblock_variant_part_format.title",
+                Component.translatable(this.getMultiblockVariant().map(IMultiblockVariant::getTranslationKey).orElse("unknown")),
+                Component.translatable(this.getPartType().map(IReactorPartType::getTranslationKey).orElse("unknown")));
     }
 
     //region client render support
 
     @Override
-    protected IModelData getUpdatedModelData() {
+    protected ModelData getUpdatedModelData() {
         return CodeHelper.optionalMap(this.getMultiblockVariant(), this.getPartType(), this::getUpdatedModelData)
-                .orElse(EmptyModelData.INSTANCE);
+                .orElse(ModelData.EMPTY);
     }
 
     protected int getUpdatedModelVariantIndex() {
@@ -86,6 +85,16 @@ public abstract class AbstractReactorEntity
 
     public void onUpdateClientsFuelRodsLayout(final UpdateClientsFuelRodsLayout message) {
         this.executeOnController(c -> c.onUpdateClientsFuelRodsLayout(message));
+    }
+
+    //endregion
+    //region IDebuggable
+
+    @Override
+    public void getDebugMessages(LogicalSide side, IDebugMessages messages) {
+
+        super.getDebugMessages(side, messages);
+        messages.addUnlocalized("Model Variant Index: %d", this.getUpdatedModelVariantIndex());
     }
 
     //endregion
@@ -159,10 +168,10 @@ public abstract class AbstractReactorEntity
     @Override
     public MultiblockReactor createController() {
 
-        final World myWorld = this.getLevel();
+        final Level myWorld = this.getLevel();
 
         if (null == myWorld) {
-            throw new RuntimeException("Trying to create a Controller from a Part without a World");
+            throw new RuntimeException("Trying to create a Controller from a Part without a Level");
         }
 
         return new MultiblockReactor(this.getLevel(), this.getMultiblockVariant().orElse(ReactorVariant.Basic));
@@ -198,11 +207,9 @@ public abstract class AbstractReactorEntity
     //endregion
     //region client render support
 
-    protected IModelData getUpdatedModelData(final IMultiblockReactorVariant variant, final ReactorPartType partType) {
-        return getVariantModelDataCache(variant).computeIfAbsent(partType.ordinal(), this.getUpdatedModelVariantIndex(),
-                this.getOutwardFacings(),
-                () -> new CuboidPartVariantsModelData(partType.ordinal(), this.getUpdatedModelVariantIndex(),
-                        this.getOutwardFacings()));
+    protected ModelData getUpdatedModelData(final IMultiblockReactorVariant variant, final IMultiblockPartType partType) {
+        return getVariantModelDataCache(variant).computeIfAbsent(partType.getByteHashCode(), this.getUpdatedModelVariantIndex(),
+                this.getOutwardFacings());
     }
 
     private static CuboidPartVariantsModelDataCache getVariantModelDataCache(final IMultiblockReactorVariant variant) {

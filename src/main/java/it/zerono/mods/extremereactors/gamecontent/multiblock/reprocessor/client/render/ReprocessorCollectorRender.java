@@ -18,30 +18,37 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.client.render;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import it.zerono.mods.extremereactors.config.Config;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.part.ReprocessorCollectorEntity;
 import it.zerono.mods.zerocore.lib.client.render.buffer.TintingRenderTypeBufferWrapper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.ItemRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.vector.Quaternion;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 
 public class ReprocessorCollectorRender
-        extends TileEntityRenderer<ReprocessorCollectorEntity> {
+        implements BlockEntityRenderer<ReprocessorCollectorEntity> {
 
-    public ReprocessorCollectorRender(final TileEntityRendererDispatcher rendererDispatcher) {
-        super(rendererDispatcher);
+    public ReprocessorCollectorRender(final BlockEntityRendererProvider.Context context) {
     }
 
     //region TileEntityRenderer
 
     @Override
-    public void render(final ReprocessorCollectorEntity collector, float partialTicks, final MatrixStack stack,
-                       final IRenderTypeBuffer buffer, final int combinedLight, final int combinedOverlay) {
+    public AABB getRenderBoundingBox(ReprocessorCollectorEntity collector) {
+        return collector.getRenderBoundingBox();
+    }
+
+    @Override
+    public void render(final ReprocessorCollectorEntity collector, float partialTicks, final PoseStack stack,
+                       final MultiBufferSource buffer, final int combinedLight, final int combinedOverlay) {
 
         final ItemStack startItem = collector.getRecipeSourceItem();
         final ItemStack endItem = collector.getRecipeProductItem();
@@ -54,18 +61,27 @@ public class ReprocessorCollectorRender
         stack.pushPose();
 
         stack.translate(0.5, 6.0 - (5.5 * progress), 0.5);
-        stack.mulPose(new Quaternion(0, (float)((collector.getPartWorldOrFail().getGameTime() / 25.0) % (Math.PI * 2) +
-                (partialTicks / 25.0)), 0, false));
+        stack.mulPose(Axis.YP.rotationDegrees((360 * collector.getPartWorldOrFail().getGameTime() / 50.0f) + (partialTicks / 50.0f)));
         stack.scale(1.5F, 1.5F, 1.5F);
 
-        final float startItemAlpha = (1.0f - (float)progress) + 0.25f;
-        final float endItemAlpha = ((float)progress) - 0.10f;
+        if (Config.CLIENT.disableReprocessorMorphingAnimation) {
 
-        ITEM_RENDERER.renderStatic(startItem, ItemCameraTransforms.TransformType.GROUND, combinedLight, combinedOverlay,
-                stack, new TintingRenderTypeBufferWrapper(buffer, startItemAlpha, 1.0f, 1.0f, 1.0f));
+            ITEM_RENDERER.renderStatic(startItem, ItemDisplayContext.GROUND, combinedLight, combinedOverlay,
+                    stack, buffer, collector.getCurrentWorld(), 0);
 
-        ITEM_RENDERER.renderStatic(endItem, ItemCameraTransforms.TransformType.GROUND, combinedLight, combinedOverlay,
-                stack, new TintingRenderTypeBufferWrapper(buffer, endItemAlpha, 1.0f, 1.0f, 1.0f));
+        } else {
+
+            final float startItemAlpha = (1.0f - (float)progress) + 0.25f;
+            final float endItemAlpha = ((float)progress) - 0.10f;
+
+            ITEM_RENDERER.renderStatic(startItem, ItemDisplayContext.GROUND, combinedLight, combinedOverlay,
+                    stack, new TintingRenderTypeBufferWrapper(buffer, startItemAlpha, 1.0f, 1.0f, 1.0f),
+                    collector.getCurrentWorld(), 0);
+
+            ITEM_RENDERER.renderStatic(endItem, ItemDisplayContext.GROUND, combinedLight, combinedOverlay,
+                    stack, new TintingRenderTypeBufferWrapper(buffer, endItemAlpha, 1.0f, 1.0f, 1.0f),
+                    collector.getCurrentWorld(), 0);
+        }
 
         stack.popPose();
     }

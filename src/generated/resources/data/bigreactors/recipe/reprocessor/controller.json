@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": {
+      "item": "bigreactors:reprocessorcasing"
+    },
+    "E": {
+      "tag": "c:gems/emerald"
+    },
+    "P": {
+      "tag": "c:gems/prismarine"
+    },
+    "X": {
+      "item": "minecraft:comparator"
+    },
+    "Y": {
+      "tag": "c:ingots/cyanite"
+    }
+  },
+  "pattern": [
+    "CXC",
+    "YEY",
+    "CPC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reprocessorcontroller"
+  }
+}

@@ -27,13 +27,15 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IFuelContai
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model.ReactorFuelRodModel;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.client.model.ReactorFuelRodModelData;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.part.ReactorFuelRodEntity;
+import it.zerono.mods.zerocore.lib.client.render.ModRenderHelper;
 import it.zerono.mods.zerocore.lib.data.gfx.Colour;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 import java.util.Arrays;
 
@@ -116,7 +118,7 @@ public class ClientFuelRodsLayout
     }
 
     @Override
-    public void updateFuelRodsOcclusion(final World world, final Iterable<ReactorFuelRodEntity> fuelRods, final boolean interiorInvisible) {
+    public void updateFuelRodsOcclusion(final Level world, final Iterable<ReactorFuelRodEntity> fuelRods, final boolean interiorInvisible) {
 
         if (interiorInvisible) {
 
@@ -126,6 +128,7 @@ public class ClientFuelRodsLayout
 
         final Direction[] directions = this.getRadiateDirections();
         final RenderType solid = RenderType.solid();
+        final RandomSource rand = RandomSource.create();
 
         for (final ReactorFuelRodEntity fuelRod : fuelRods) {
 
@@ -137,7 +140,7 @@ public class ClientFuelRodsLayout
                 final BlockPos checkPosition = rodPosition.relative(direction);
                 final BlockState state = world.getBlockState(checkPosition);
 
-                if (state.isAir(world, checkPosition) || !RenderTypeLookup.canRenderInLayer(state, solid)) {
+                if (state.isAir() || !ModRenderHelper.getModel(state).getRenderTypes(state, rand, ModelData.EMPTY).contains(solid)) {
 
                     occluded = false;
                     break;
@@ -209,7 +212,7 @@ public class ClientFuelRodsLayout
     }
 
     @Override
-    public ReactorFuelRodModelData getFuelRodModelData(int rodIndex, boolean rodOccluded) {
+    public ModelData getFuelRodModelData(int rodIndex, boolean rodOccluded) {
         return ReactorFuelRodModelData.from(this.getFuelData(rodIndex), rodOccluded);
     }
 
@@ -258,8 +261,7 @@ public class ClientFuelRodsLayout
 
         @Override
         public String toString() {
-            return String.format("Fuel lvl=%d, Waste lvl=%d, Orientation=%s", this._fuelLevel, this._wasteLevel,
-                    this._orientation.toString());
+            return String.format("Fuel lvl=%d, Waste lvl=%d, Orientation=%s", this._fuelLevel, this._wasteLevel, this._orientation);
         }
 
         //endregion

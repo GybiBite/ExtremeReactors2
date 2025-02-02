@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "bigreactors:coil",
+  "key": {
+    "I": {
+      "item": "bigreactors:ridiculite_ingot"
+    },
+    "S": {
+      "item": "minecraft:nether_star"
+    }
+  },
+  "pattern": [
+    "III",
+    "ISI",
+    "III"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:ridiculite_block"
+  }
+}

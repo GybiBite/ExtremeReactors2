@@ -23,16 +23,17 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part.Flui
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.part.FluidizerSolidInjectorEntity;
 import it.zerono.mods.zerocore.base.multiblock.part.GenericDeviceBlock;
 import it.zerono.mods.zerocore.base.multiblock.part.GlassBlock;
-import it.zerono.mods.zerocore.lib.block.multiblock.IMultiblockPartType2;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartBlock;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartTypeProperties;
-import net.minecraft.block.Block;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraftforge.common.util.NonNullFunction;
-import net.minecraftforge.common.util.NonNullSupplier;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public enum FluidizerPartType
-        implements IMultiblockPartType2<MultiblockFluidizer, FluidizerPartType> {
+        implements IFluidizerPartType {
 
     Casing(() -> Content.TileEntityTypes.FLUIDIZER_CASING::get,
             MultiblockPartBlock::new, "block.bigreactors.fluidizercasing"),
@@ -59,34 +60,35 @@ public enum FluidizerPartType
 
     ;
 
-    FluidizerPartType(final NonNullSupplier<NonNullSupplier<TileEntityType<?>>> tileTypeSupplier,
-                      final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<FluidizerPartType>,
-                              MultiblockPartBlock<MultiblockFluidizer, FluidizerPartType>> blockFactory,
+    FluidizerPartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                      final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<IFluidizerPartType>,
+                              @NotNull MultiblockPartBlock<MultiblockFluidizer, IFluidizerPartType>> blockFactory,
                       final String translationKey) {
         this(tileTypeSupplier, blockFactory, translationKey, bp -> bp);
     }
 
-    FluidizerPartType(final NonNullSupplier<NonNullSupplier<TileEntityType<?>>> tileTypeSupplier,
-                      final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<FluidizerPartType>,
-                              MultiblockPartBlock<MultiblockFluidizer, FluidizerPartType>> blockFactory,
+    FluidizerPartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                      final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<IFluidizerPartType>,
+                              @NotNull MultiblockPartBlock<MultiblockFluidizer, IFluidizerPartType>> blockFactory,
                       final String translationKey,
-                      final NonNullFunction<Block.Properties, Block.Properties> blockPropertiesFixer) {
+                      final Function<Block.@NotNull Properties, Block.@NotNull Properties> blockPropertiesFixer) {
         this(tileTypeSupplier, blockFactory, translationKey, blockPropertiesFixer, ep -> ep);
     }
 
-    FluidizerPartType(final NonNullSupplier<NonNullSupplier<TileEntityType<?>>> tileTypeSupplier,
-                      final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<FluidizerPartType>,
-                              MultiblockPartBlock<MultiblockFluidizer, FluidizerPartType>> blockFactory,
+    FluidizerPartType(final Supplier<@NotNull Supplier<@NotNull BlockEntityType<?>>> tileTypeSupplier,
+                      final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<IFluidizerPartType>,
+                              @NotNull MultiblockPartBlock<MultiblockFluidizer, IFluidizerPartType>> blockFactory,
                       final String translationKey,
-                      final NonNullFunction<Block.Properties, Block.Properties> blockPropertiesFixer,
-                      final NonNullFunction<MultiblockPartBlock.MultiblockPartProperties<FluidizerPartType>, MultiblockPartBlock.MultiblockPartProperties<FluidizerPartType>> partPropertiesFixer) {
+                      final Function<Block.@NotNull Properties, Block.@NotNull Properties> blockPropertiesFixer,
+                      final Function<MultiblockPartBlock.@NotNull MultiblockPartProperties<IFluidizerPartType>,
+                              MultiblockPartBlock.@NotNull MultiblockPartProperties<IFluidizerPartType>> partPropertiesFixer) {
         this._properties = new MultiblockPartTypeProperties<>(tileTypeSupplier, blockFactory, translationKey, blockPropertiesFixer, partPropertiesFixer);
     }
 
     //region IMultiblockPartType2
 
     @Override
-    public MultiblockPartTypeProperties<MultiblockFluidizer, FluidizerPartType> getPartTypeProperties() {
+    public MultiblockPartTypeProperties<MultiblockFluidizer, IFluidizerPartType> getPartTypeProperties() {
         return this._properties;
     }
 
@@ -98,7 +100,7 @@ public enum FluidizerPartType
     //endregion
     //region internals
 
-    private final MultiblockPartTypeProperties<MultiblockFluidizer, FluidizerPartType> _properties;
+    private final MultiblockPartTypeProperties<MultiblockFluidizer, IFluidizerPartType> _properties;
 
     //endregion
 }

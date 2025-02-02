@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "1": {
+      "item": "minecraft:hopper"
+    },
+    "2": {
+      "tag": "c:ingots/iron"
+    },
+    "3": {
+      "tag": "c:ingots/netherite"
+    },
+    "C": {
+      "item": "bigreactors:reprocessorcasing"
+    }
+  },
+  "pattern": [
+    "C2C",
+    "313",
+    "C2C"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bigreactors:reprocessorcollector"
+  }
+}

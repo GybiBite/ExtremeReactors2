@@ -21,27 +21,13 @@ package it.zerono.mods.extremereactors.gamecontent.compat.jei.reactor;
 import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.api.internal.AbstractNamedValue;
 import mezz.jei.api.ingredients.IIngredientHelper;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import mezz.jei.api.ingredients.subtypes.UidContext;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractIngredientHelper<T extends AbstractNamedValue>
         implements IIngredientHelper<T> {
-    
+
     //region IIngredientHelper<T>
-
-    @Nullable
-    @Override
-    public T getMatch(final Iterable<T> ingredients, final @Nonnull T ingredientToMatch) {
-
-        for (final T ingredient : ingredients) {
-            if (ingredientToMatch.equals(ingredient)) {
-                return ingredient;
-            }
-        }
-
-        return null;
-    }
 
     @Override
     public String getDisplayName(final T ingredient) {
@@ -49,23 +35,8 @@ public abstract class AbstractIngredientHelper<T extends AbstractNamedValue>
     }
 
     @Override
-    public String getUniqueId(final T ingredient) {
+    public String getUniqueId(final T ingredient, final UidContext context) {
         return ExtremeReactors.MOD_ID + ":" + ingredient.getName();
-    }
-
-    @Override
-    public String getWildcardId(final T ingredient) {
-        return this.getUniqueId(ingredient);
-    }
-
-    @Override
-    public String getModId(final T ingredient) {
-        return ExtremeReactors.MOD_ID;
-    }
-
-    @Override
-    public String getResourceId(final T ingredient) {
-        return ingredient.getName();
     }
 
     @Override

@@ -21,10 +21,12 @@ package it.zerono.mods.extremereactors.gamecontent.compat.patchouli;
 import it.zerono.mods.extremereactors.ExtremeReactors;
 import it.zerono.mods.extremereactors.config.Config;
 import it.zerono.mods.extremereactors.gamecontent.Content;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.EnergizerPartType;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.energizer.MultiBlockEnergizer;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.FluidizerPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.MultiblockFluidizer;
+import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.IReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.MultiblockReactor;
-import it.zerono.mods.extremereactors.gamecontent.multiblock.reactor.ReactorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.MultiblockReprocessor;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.reprocessor.ReprocessorPartType;
 import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.MultiblockTurbine;
@@ -35,18 +37,17 @@ import it.zerono.mods.extremereactors.gamecontent.multiblock.turbine.rotor.Rotor
 import it.zerono.mods.zerocore.lib.block.BlockFacings;
 import it.zerono.mods.zerocore.lib.block.multiblock.MultiblockPartBlock;
 import it.zerono.mods.zerocore.lib.client.model.data.multiblock.CuboidPartVariantsModelData;
-import it.zerono.mods.zerocore.lib.compat.patchouli.Patchouli;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.data.EmptyModelData;
-import net.minecraftforge.client.model.data.IModelData;
-import vazkii.patchouli.api.PatchouliAPI;
+import it.zerono.mods.zerocore.lib.compat.patchouli.IPatchouliClientService;
+import it.zerono.mods.zerocore.lib.compat.patchouli.IPatchouliService;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 public final class PatchouliCompat {
 
-    public static final ResourceLocation HANDBOOK_ID = ExtremeReactors.newID("erguide");
+    public static final ResourceLocation HANDBOOK_ID = ExtremeReactors.ROOT_LOCATION.buildWithSuffix("erguide");
 
     public static void initialize() {
 
@@ -54,11 +55,17 @@ public final class PatchouliCompat {
             return;
         }
 
-        Patchouli.initialize();
+        IPatchouliClientService.SERVICE.get().initialize();
+
+        final var patchouli = IPatchouliService.SERVICE.get();
 
         //noinspection unchecked
-        Patchouli.registerMultiblock(ExtremeReactors.newID("bookfirstbasicreactor"),
-                PatchouliAPI.get().makeMultiblock(new String[][] {
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookfirstbasicreactor"),
+                bs -> bs.getBlock().defaultBlockState(),
+                bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
+                        CuboidPartVariantsModelData.from(((MultiblockPartBlock<MultiblockReactor, IReactorPartType>)bs.getBlock()).getPartType().getByteHashCode(), 0, BlockFacings.ALL) :
+                        ModelData.EMPTY,
+                new String[][] {
                         {
                             "CCC",
                             "CRC",
@@ -81,15 +88,13 @@ public final class PatchouliCompat {
                     'R', Content.Blocks.REACTOR_CONTROLROD_BASIC.get(),
                     'A', Content.Blocks.REACTOR_SOLID_ACCESSPORT_BASIC.get(),
                     'E', Content.Blocks.REACTOR_POWERTAP_FE_ACTIVE_BASIC.get(),
-                    'X', Content.Blocks.REACTOR_CONTROLLER_BASIC.get()),
-                bs -> bs.getBlock().defaultBlockState(),
-                bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
-                        new CuboidPartVariantsModelData(((MultiblockPartBlock<MultiblockReactor, ReactorPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
-                        EmptyModelData.INSTANCE
+                    'X', Content.Blocks.REACTOR_CONTROLLER_BASIC.get()
         );
 
-        Patchouli.registerMultiblock(ExtremeReactors.newID("bookturbinerotor"),
-                PatchouliAPI.get().makeMultiblock(new String[][] {
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookturbinerotor"),
+                bs -> bs.getBlock().defaultBlockState(),
+                PatchouliCompat::turbineRotorModelDataMapper,
+                new String[][] {
                                 {
                                         "       ",
                                         "       ",
@@ -181,14 +186,13 @@ public final class PatchouliCompat {
                         '3', Content.Blocks.TURBINE_ROTORBLADE_BASIC.get().defaultBlockState().setValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE, RotorBladeState.Y_X_POS),
                         '2', Content.Blocks.TURBINE_ROTORBLADE_BASIC.get().defaultBlockState().setValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE, RotorBladeState.Y_Z_NEG),
                         '4', Content.Blocks.TURBINE_ROTORBLADE_BASIC.get().defaultBlockState().setValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE, RotorBladeState.Y_Z_POS),
-                        'X', Content.Blocks.TURBINE_CASING_BASIC.get().defaultBlockState()),
-                bs -> bs.getBlock().defaultBlockState(),
-                PatchouliCompat::turbineRotorModelDataMapper
+                        'X', Content.Blocks.TURBINE_CASING_BASIC.get().defaultBlockState()
         );
 
-
-        Patchouli.registerMultiblock(ExtremeReactors.newID("bookturbinerotor_coil"),
-                PatchouliAPI.get().makeMultiblock(new String[][] {
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookturbinerotor_coil"),
+                bs -> bs.getBlock().defaultBlockState(),
+                PatchouliCompat::turbineRotorModelDataMapper,
+                new String[][] {
                                 {
                                         "       ",
                                         "       ",
@@ -282,14 +286,16 @@ public final class PatchouliCompat {
                         '4', Content.Blocks.TURBINE_ROTORBLADE_BASIC.get().defaultBlockState().setValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE, RotorBladeState.Y_Z_POS),
                         'X', Content.Blocks.TURBINE_CASING_BASIC.get().defaultBlockState(),
                         'I', Blocks.IRON_BLOCK.defaultBlockState(),
-                        'G', Blocks.GOLD_BLOCK.defaultBlockState()),
-                bs -> bs.getBlock().defaultBlockState(),
-                PatchouliCompat::turbineRotorModelDataMapper
+                        'G', Blocks.GOLD_BLOCK.defaultBlockState()
         );
 
         //noinspection unchecked
-        Patchouli.registerMultiblock(ExtremeReactors.newID("bookreprocessor"),
-                PatchouliAPI.get().makeMultiblock(new String[][] {
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookreprocessor"),
+                bs -> bs.getBlock().defaultBlockState(),
+                bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
+                        CuboidPartVariantsModelData.from(((MultiblockPartBlock<MultiblockReprocessor, ReprocessorPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
+                        ModelData.EMPTY,
+                new String[][] {
                                 {
                                         "CCC",
                                         "CWC",
@@ -332,16 +338,16 @@ public final class PatchouliCompat {
                         'O', Content.Blocks.REPROCESSOR_OUTPUTPORT.get(),
                         'A', Content.Blocks.REPROCESSOR_FLUIDINJECTOR.get(),
                         'E', Content.Blocks.REPROCESSOR_POWERPORT.get(),
-                        'X', Content.Blocks.REPROCESSOR_CONTROLLER.get()),
-                bs -> bs.getBlock().defaultBlockState(),
-                bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
-                        new CuboidPartVariantsModelData(((MultiblockPartBlock<MultiblockReprocessor, ReprocessorPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
-                        EmptyModelData.INSTANCE
+                        'X', Content.Blocks.REPROCESSOR_CONTROLLER.get()
         );
 
         //noinspection unchecked
-        Patchouli.registerMultiblock(ExtremeReactors.newID("bookfluidizer"),
-                PatchouliAPI.get().makeMultiblock(new String[][] {
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookfluidizer"),
+                bs -> bs.getBlock().defaultBlockState(),
+                bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
+                        CuboidPartVariantsModelData.from(((MultiblockPartBlock<MultiblockFluidizer, FluidizerPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
+                        ModelData.EMPTY,
+                new String[][] {
                                 {
                                         "CCCCC",
                                         "CCCPC",
@@ -377,39 +383,90 @@ public final class PatchouliCompat {
                         'P', Content.Blocks.FLUIDIZER_POWERPORT.get(),
                         'O', Content.Blocks.FLUIDIZER_OUTPUTPORT.get(),
                         'I', Content.Blocks.FLUIDIZER_SOLIDINJECTOR.get(),
-                        'X', Content.Blocks.FLUIDIZER_CONTROLLER.get()),
+                        'X', Content.Blocks.FLUIDIZER_CONTROLLER.get()
+        );
+
+        //noinspection unchecked
+        patchouli.registerMultiblock(ExtremeReactors.ROOT_LOCATION.buildWithSuffix("bookenergizer"),
                 bs -> bs.getBlock().defaultBlockState(),
                 bs -> (bs.getBlock() instanceof MultiblockPartBlock) ?
-                        new CuboidPartVariantsModelData(((MultiblockPartBlock<MultiblockFluidizer, FluidizerPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
-                        EmptyModelData.INSTANCE
+                        CuboidPartVariantsModelData.from(((MultiblockPartBlock<MultiBlockEnergizer, EnergizerPartType>)bs.getBlock()).getPartType().ordinal(), 0, BlockFacings.ALL) :
+                        ModelData.EMPTY,
+                new String[][] {
+                                {
+                                        "CCCCC",
+                                        "CCCPC",
+                                        "CXCCC",
+                                        "CICCC",
+                                        "CCCCC",
+                                },
+                                {
+                                        "CCCCC",
+                                        "O   C",
+                                        "C   C",
+                                        "I   C",
+                                        "CCCCC",
+                                },
+                                {
+                                        "CCCCC",
+                                        "C   C",
+                                        "C   O",
+                                        "C   C",
+                                        "CPCCC",
+                                },
+                                {
+                                        "CCCCC",
+                                        "C   P",
+                                        "P   C",
+                                        "C   C",
+                                        "CCCCC",
+                                },
+                                {
+                                        "CCCCC",
+                                        "CCCCC",
+                                        "CC0CC",
+                                        "CCCCC",
+                                        "CCCCC",
+                                }
+                        },
+                        '0', Content.Blocks.ENERGIZER_CASING.get(),
+                        'C', Content.Blocks.ENERGIZER_CASING.get(),
+                        'P', Content.Blocks.ENERGIZER_POWERPORT_FE.get(),
+                        'O', Content.Blocks.ENERGIZER_CHARGINGPORT_FE.get(),
+                        'I', Content.Blocks.ENERGIZER_COMPUTERPORT.get(),
+                        'X', Content.Blocks.ENERGIZER_CONTROLLER.get()
         );
     }
 
     //region internals
 
-    private static IModelData turbineRotorModelDataMapper(final BlockState state) {
+    private static ModelData turbineRotorModelDataMapper(final BlockState state) {
 
         final Block block = state.getBlock();
+
+        if (block instanceof TurbineRotorComponentBlock rotorComponent) {
+
+            switch (rotorComponent.getComponentType()) {
+
+                case Shaft:
+                    return CuboidPartVariantsModelData.from(TurbinePartType.RotorShaft.ordinal(),
+                            state.getValue(TurbineRotorComponentBlock.ROTOR_SHAFT_STATE).ordinal(), BlockFacings.ALL);
+
+                case Blade:
+                    return CuboidPartVariantsModelData.from(TurbinePartType.RotorBlade.ordinal(),
+                            state.getValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE).ordinal(), BlockFacings.ALL);
+            }
+        }
 
         if (block instanceof MultiblockPartBlock) {
 
             @SuppressWarnings("unchecked")
             final MultiblockPartBlock<MultiblockTurbine, TurbinePartType> part = (MultiblockPartBlock<MultiblockTurbine, TurbinePartType>)block;
 
-            switch (part.getPartType()) {
-
-                case RotorShaft:
-                    return new CuboidPartVariantsModelData(TurbinePartType.RotorShaft.ordinal(), state.getValue(TurbineRotorComponentBlock.ROTOR_SHAFT_STATE).ordinal(), BlockFacings.ALL);
-
-                case RotorBlade:
-                    return new CuboidPartVariantsModelData(TurbinePartType.RotorBlade.ordinal(), state.getValue(TurbineRotorComponentBlock.ROTOR_BLADE_STATE).ordinal(), BlockFacings.ALL);
-
-                default:
-                    return new CuboidPartVariantsModelData(part.getPartType().ordinal(), 0, BlockFacings.ALL);
-            }
+            return CuboidPartVariantsModelData.from(part.getPartType().getByteHashCode(), 0, BlockFacings.ALL);
         }
 
-        return EmptyModelData.INSTANCE;
+        return ModelData.EMPTY;
     }
 
     //endregion

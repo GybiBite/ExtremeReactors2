@@ -26,22 +26,24 @@ import it.zerono.mods.zerocore.lib.Ticker;
 import it.zerono.mods.zerocore.lib.item.ItemHelper;
 import it.zerono.mods.zerocore.lib.multiblock.cuboid.PartPosition;
 import it.zerono.mods.zerocore.lib.multiblock.validation.IMultiblockValidator;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class ReprocessorCollectorEntity
         extends AbstractReprocessorEntity {
 
-    public ReprocessorCollectorEntity() {
+    public ReprocessorCollectorEntity(final BlockPos position, final BlockState blockState) {
 
-        super(Content.TileEntityTypes.REPROCESSOR_COLLECTOR.get());
+        super(Content.TileEntityTypes.REPROCESSOR_COLLECTOR.get(), position, blockState);
         this._renderBoundingBox = CodeHelper.EMPTY_AABB;
         this._recipeSourceItem = this._recipeProductItem = ItemStack.EMPTY;
     }
@@ -85,13 +87,17 @@ public class ReprocessorCollectorEntity
         this.callOnLogicalClient(this._tersTicker::tick);
     }
 
+    public AABB getRenderBoundingBox() {
+        return this._renderBoundingBox;
+    }
+
     //endregion
     //region ISyncableEntity
 
     @Override
-    public void syncDataFrom(final CompoundNBT data, final SyncReason syncReason) {
+    public void syncDataFrom(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataFrom(data, syncReason);
+        super.syncDataFrom(data, registries, syncReason);
 
         if (syncReason.isNetworkUpdate()) {
 
@@ -101,9 +107,9 @@ public class ReprocessorCollectorEntity
     }
 
     @Override
-    public CompoundNBT syncDataTo(final CompoundNBT data, final SyncReason syncReason) {
+    public CompoundTag syncDataTo(CompoundTag data, HolderLookup.Provider registries, SyncReason syncReason) {
 
-        super.syncDataTo(data, syncReason);
+        super.syncDataTo(data, registries, syncReason);
 
         if (syncReason.isNetworkUpdate()) {
 
@@ -129,61 +135,47 @@ public class ReprocessorCollectorEntity
     }
 
     //endregion
-    //region client render support
-
-    @Override
-    protected int getUpdatedModelVariantIndex() {
-        return 0;
-    }
-
-    //endregion
     //region AbstractMultiblockEntity
 
     @Override
     public void onPostMachineAssembled(final MultiblockReprocessor controller) {
 
         super.onPostMachineAssembled(controller);
-        this._renderBoundingBox = this.evalOnController(c -> c.mapBoundingBoxCoordinates(AxisAlignedBB::new,
-                CodeHelper.EMPTY_AABB), CodeHelper.EMPTY_AABB);
+        this._renderBoundingBox = this.evalOnController(c -> c.getBoundingBox().getAABB(), CodeHelper.EMPTY_AABB);
     }
 
     //endregion
     //region TileEntity
 
     @Override
-    public AxisAlignedBB getRenderBoundingBox() {
-        return this._renderBoundingBox;
-    }
+    public void setLevel(Level world) {
 
-    @Override
-    public void setLevelAndPosition(World world, BlockPos pos) {
-
-        super.setLevelAndPosition(world, pos);
+        super.setLevel(world);
         this._tersTicker = this.callOnLogicalClient(() -> new Ticker(MultiblockReprocessor.TICKS), () -> null);
     }
 
     //endregion
     //region internals
 
-    private static void syncItem(final CompoundNBT data, final String name, final ItemStack stack) {
+    private static void syncItem(final CompoundTag data, final String name, final ItemStack stack) {
         if (!stack.isEmpty()) {
             data.putString(name, ItemHelper.getItemId(stack).toString());
         }
     }
 
     @Nullable
-    private static ItemStack syncItem(final CompoundNBT data, final String name) {
+    private static ItemStack syncItem(final CompoundTag data, final String name) {
 
         Item item;
 
         if (data.contains(name) && null != (item = ItemHelper.getItemFrom(data.getString(name)))) {
-            return ItemHelper.stackFrom(item);
+            return item.getDefaultInstance();
         }
 
         return ItemStack.EMPTY;
     }
 
-    private AxisAlignedBB _renderBoundingBox;
+    private AABB _renderBoundingBox;
 
     private Ticker _tersTicker;
     private ItemStack _recipeSourceItem;

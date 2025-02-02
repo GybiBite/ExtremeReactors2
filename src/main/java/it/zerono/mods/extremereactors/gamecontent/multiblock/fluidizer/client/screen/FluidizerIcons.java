@@ -18,14 +18,16 @@
 
 package it.zerono.mods.extremereactors.gamecontent.multiblock.fluidizer.client.screen;
 
-import it.zerono.mods.extremereactors.ExtremeReactors;
+import it.zerono.mods.extremereactors.CommonLocations;
 import it.zerono.mods.zerocore.lib.client.gui.sprite.ISprite;
 import it.zerono.mods.zerocore.lib.client.gui.sprite.ISpriteBuilder;
 import it.zerono.mods.zerocore.lib.client.gui.sprite.SpriteTextureMap;
-import net.minecraftforge.common.util.NonNullSupplier;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Supplier;
 
 public enum FluidizerIcons
-        implements NonNullSupplier<ISprite> {
+        implements Supplier<@NotNull ISprite> {
 
     GuiBackground(builder().from(0, 0).ofSize(224, 166).build()),
     GuiInventory9x3(builder().from(0, 202).ofSize(162, 54).build()),
@@ -46,7 +48,8 @@ public enum FluidizerIcons
     public static SpriteTextureMap getMap() {
 
         if (null == s_map) {
-            s_map = new SpriteTextureMap(ExtremeReactors.newID("textures/gui/multiblock/fluidizer.png"), 256, 256);
+            s_map = new SpriteTextureMap(CommonLocations.TEXTURES_GUI_MULTIBLOCK.buildWithSuffix("fluidizer.png"),
+                    256, 256);
         }
 
         return s_map;

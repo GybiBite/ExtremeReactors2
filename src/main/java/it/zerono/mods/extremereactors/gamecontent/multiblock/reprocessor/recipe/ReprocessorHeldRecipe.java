@@ -24,8 +24,8 @@ import it.zerono.mods.zerocore.lib.recipe.holder.IRecipeHolder;
 import it.zerono.mods.zerocore.lib.recipe.ingredient.IRecipeIngredientSource;
 import it.zerono.mods.zerocore.lib.recipe.result.IRecipeResultTarget;
 import it.zerono.mods.zerocore.lib.recipe.result.ItemStackRecipeResult;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class ReprocessorHeldRecipe
         extends AbstractHeldRecipe<ReprocessorRecipe> {

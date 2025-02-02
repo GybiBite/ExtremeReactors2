@@ -18,9 +18,10 @@
 
 package it.zerono.mods.extremereactors.gamecontent;
 
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 
 public final class CommonConstants {
 
@@ -40,26 +41,26 @@ public final class CommonConstants {
     //endregion
     //region ids
 
-    public static final ResourceLocation FLUID_TEXTURE_SOURCE_WATER = new ResourceLocation("block/water_still");
-    public static final ResourceLocation FLUID_TEXTURE_FLOWING_WATER = new ResourceLocation("block/water_flow");
-    public static final ResourceLocation FLUID_TEXTURE_OVERLAY_WATER = new ResourceLocation("block/water_overlay");
+    public static final ResourceLocation FLUID_TEXTURE_SOURCE_WATER = ResourceLocation.parse("block/water_still");
+    public static final ResourceLocation FLUID_TEXTURE_FLOWING_WATER = ResourceLocation.parse("block/water_flow");
+    public static final ResourceLocation FLUID_TEXTURE_OVERLAY_WATER = ResourceLocation.parse("block/water_overlay");
 
     //endregion
     //region UI styles
 
     @Deprecated // use ZC.base.CommonConstants
     public static final Style STYLE_TOOLTIP_TITLE = Style.EMPTY
-            .withColor(TextFormatting.YELLOW)
+            .withColor(ChatFormatting.YELLOW)
             .withBold(true);
 
     @Deprecated // use ZC.base.CommonConstants
     public static final Style STYLE_TOOLTIP_VALUE = Style.EMPTY
-            .withColor(TextFormatting.DARK_AQUA)
+            .withColor(ChatFormatting.DARK_AQUA)
             .withBold(true);
 
     @Deprecated // use ZC.base.CommonConstants
     public static final Style STYLE_TOOLTIP_INFO = Style.EMPTY
-            .withColor(TextFormatting.DARK_PURPLE)
+            .withColor(ChatFormatting.DARK_PURPLE)
             .withItalic(true);
 
     //endregion
